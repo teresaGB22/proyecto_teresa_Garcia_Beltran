@@ -10,4 +10,5 @@ module proyecto {
 	requires java.xml;
 	requires jdk.compiler;
 	requires jdk.jpackage;
+	requires java.sql;
 }

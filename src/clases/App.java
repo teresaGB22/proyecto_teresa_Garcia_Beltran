@@ -1,10 +1,11 @@
 package clases;
 
+import java.sql.SQLException;
 import java.util.Scanner;
 
 public class App {
 
-	public void menu() {
+	public  void menu() throws SQLException{
 		Scanner scanner = new Scanner(System.in);
 		int opcion = -1;
 
@@ -38,7 +39,8 @@ public class App {
 		}
 	}
 
-	private void menuCliente(Scanner scanner) {
+	private void menuCliente(Scanner scanner) throws SQLException {
+		Cliente cliente = new Cliente();
 		int opcion;
 		do {
 			System.out.println("-- Menú Cliente --");
@@ -55,6 +57,11 @@ public class App {
 			switch (opcion) {
 			case 1:
 				System.out.println("Mostrando catálogo...");
+				try {
+					cliente.verCatalogoProductos();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 2:
 				System.out.println("Buscando producto...");
@@ -165,7 +172,11 @@ public class App {
 	}
 
 	public static void main(String[] args) {
-		new App().menu();
+		try {
+			new App().menu();
+		}catch(SQLException e) {
+			e.printStackTrace();
+		}
 
 	}
 
