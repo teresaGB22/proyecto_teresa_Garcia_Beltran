@@ -1,6 +1,7 @@
 package clases;
 import java.sql.*;
 import java.sql.Statement;
+import java.util.Scanner;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -83,4 +84,32 @@ public void verCatalogoProductos() throws SQLException {
 	}
 	
 }
+public void buscarProductoPorNombre() throws SQLException {
+	Scanner t = new Scanner(System.in);
+	System.out.println("Introduce el nombre del producto que quiere buscar:\n");
+	String nombreBuscar = t.nextLine();
+	String q = "select p.id_producto, p.nombre, p.precio, sum(pev.cantidad) as total_cantidad from producto p join producto_en_venta pev on p.id_producto = pev.producto_id where p.nombre like ? GROUP BY p.id_producto, p.nombre, p.precio";
+	
+	try (Connection c = conectar();
+			PreparedStatement pst = c.prepareStatement(q)){
+		pst.setString(1,"%"+ nombreBuscar + "%");
+		ResultSet rs = pst.executeQuery();
+		boolean encontrado = false;
+		
+		while(rs.next()) {
+			encontrado = true;
+			int id = rs.getInt("id_producto");
+			String nombre = rs.getString("nombre");
+			double precio = rs.getDouble("precio");
+			int stock = rs.getInt("total_cantidad");
+			System.out.println("Id del producto: " + id + "Nombre: " +  nombre + " Precio: " + precio + " Stock: " + stock);
+		}
+		if(!encontrado) {
+			System.out.println("No se encontraron productos con ese nombre");
+		}
+	}catch(SQLException e) {
+		System.err.println("Error al buscar el producto" + e.getMessage());
+	}
+}
+
 }

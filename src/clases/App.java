@@ -65,6 +65,11 @@ public class App {
 				break;
 			case 2:
 				System.out.println("Buscando producto...");
+				try {
+					cliente.buscarProductoPorNombre();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 3:
 				System.out.println("Aplicando cupón...");
