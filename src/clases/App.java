@@ -87,7 +87,11 @@ public class App {
 				}
 				break;
 			case 5:
-				System.out.println("Participando en sorteo...");
+				try {
+					cliente.participarEnSorteo();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 6:
 				System.out.println("Mostrando cupones...");

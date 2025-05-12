@@ -1,6 +1,9 @@
 package clases;
 import java.sql.*;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -187,5 +190,59 @@ public void verFacturas()throws SQLException{
 
 	
 }
+public void participarEnSorteo() throws SQLException{
+	Scanner t = new Scanner(System.in);
+	System.out.println("Ingrese su dni por favor:");
+	String dniCliente = t.nextLine();
+	 String comprobacion = "SELECT id_sorteo, resultado FROM sorteo WHERE cliente_dni = ?";
+	    String actualizacion = "UPDATE sorteo SET resultado = ?, premio = ? WHERE cliente_dni = ?";
+	    String insertar = "INSERT INTO sorteo (resultado, premio, cliente_dni) VALUES (?, ?, ?)";
 
+	    List<String> premios = Arrays.asList(
+	        "Vale de 10€", "Producto gratis", "Cupón de envío gratuito", 
+	        "Descuento del 50%", "Acceso a evento VIP", "Vale de 25€"
+	    );
+
+	    try (Connection c = conectar();
+	         PreparedStatement pst = c.prepareStatement(comprobacion)) {
+
+	        pst.setString(1, dniCliente);
+	        ResultSet rs = pst.executeQuery();
+
+	        String resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
+	        String premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
+
+	        if (rs.next()) {
+	            String resultadoAnterior = rs.getString("resultado");
+
+	            if ("NO PARTICIPÓ".equals(resultadoAnterior)) {
+	                try (PreparedStatement updateStmt = c.prepareStatement(actualizacion)) {
+	                    updateStmt.setString(1, resultado);
+	                    updateStmt.setString(2, premio);
+	                    updateStmt.setString(3, dniCliente);
+	                    updateStmt.executeUpdate();
+	                    System.out.println("Participación actualizada.");
+	                    System.out.println("Resultado: " + resultado);
+	                    System.out.println("Premio: " + (premio != null ? premio : "Ninguno"));
+	                }
+	            } else {
+	                System.out.println("Ya participó. Resultado: " + resultadoAnterior);
+	            }
+
+	        } else {
+	            try (PreparedStatement insertStmt = c.prepareStatement(insertar)) {
+	                insertStmt.setString(1, resultado);
+	                insertStmt.setString(2, premio);
+	                insertStmt.setString(3, dniCliente);
+	                insertStmt.executeUpdate();
+	                System.out.println("Participación registrada.");
+	                System.out.println("Resultado: " + resultado);
+	                System.out.println("Premio: " + (premio != null ? premio : "Ninguno"));
+	            }
+	        }
+
+	    } catch (SQLException e) {
+	        System.err.println("Error al participar en sorteo: " + e.getMessage());
+	    }
+}
 }
