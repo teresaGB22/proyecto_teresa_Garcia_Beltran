@@ -153,4 +153,39 @@ public void usarCuponDescuento() throws SQLException {
 	}
 	
 }
+public void verFacturas()throws SQLException{
+	Scanner t = new Scanner(System.in);
+	System.out.println("Ingrese su dni por favor:");
+	String dniCliente = t.nextLine();
+	
+	String q = "SELECT f.id_factura,f.venta_id, f.fecha_emision, f.total, v.fecha_venta, v.metodo_pago, v.metodo_envio, v.coste_envio "
+            + "FROM factura f "
+            + "JOIN venta v ON f.venta_id = v.id_venta "
+            + "WHERE f.dni_cliente = ?";
+	try(Connection c = conectar(); PreparedStatement pst = c.prepareStatement(q)){
+		pst.setString(1, dniCliente);
+		try(ResultSet rs = pst.executeQuery()){
+			if(!rs.next()) {
+				System.out.println("No se encontraron facturas con dni " + dniCliente);
+			}else {
+				do {
+					System.out.println("Factura ID: " + rs.getInt("id_factura"));
+                    System.out.println("Fecha Emisión: " + rs.getDate("fecha_emision"));
+                    System.out.println("Total: " + rs.getBigDecimal("total"));
+                    System.out.println("Venta ID: " + rs.getInt("venta_id"));
+                    System.out.println("Fecha Venta: " + rs.getDate("fecha_venta"));
+                    System.out.println("Método Pago: " + rs.getString("metodo_pago"));
+                    System.out.println("Método Envío: " + rs.getString("metodo_envio"));
+                    System.out.println("Coste Envío: " + rs.getBigDecimal("coste_envio"));
+                    System.out.println("-------------------------------------------------");
+				}while(rs.next());
+			}
+		}
+	}catch(SQLException e) {
+		System.err.println("Error al mostrar las facturas" + e.getMessage());
+	}
+
+	
+}
+
 }

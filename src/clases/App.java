@@ -80,7 +80,11 @@ public class App {
 				}
 				break;
 			case 4:
-				System.out.println("Mostrando facturas...");
+				try {
+					cliente.verFacturas();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 5:
 				System.out.println("Participando en sorteo...");
