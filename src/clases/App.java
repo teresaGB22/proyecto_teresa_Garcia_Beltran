@@ -94,7 +94,11 @@ public class App {
 				}
 				break;
 			case 6:
-				System.out.println("Mostrando cupones...");
+				try {
+					cliente.consultarCuponesDisponibles();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 0:
 				break;
