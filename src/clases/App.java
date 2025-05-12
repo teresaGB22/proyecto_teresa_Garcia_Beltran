@@ -72,7 +72,12 @@ public class App {
 				}
 				break;
 			case 3:
-				System.out.println("Aplicando cupón...");
+				try {
+					cliente.usarCuponDescuento();
+					
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 4:
 				System.out.println("Mostrando facturas...");

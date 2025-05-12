@@ -102,7 +102,7 @@ public void buscarProductoPorNombre() throws SQLException {
 			String nombre = rs.getString("nombre");
 			double precio = rs.getDouble("precio");
 			int stock = rs.getInt("total_cantidad");
-			System.out.println("Id del producto: " + id + "Nombre: " +  nombre + " Precio: " + precio + " Stock: " + stock);
+			System.out.println("Id del producto: " + id + "Nombre: " +  nombre + " Precio: " + precio + " Stock: " + stock + "\n");
 		}
 		if(!encontrado) {
 			System.out.println("No se encontraron productos con ese nombre");
@@ -111,5 +111,46 @@ public void buscarProductoPorNombre() throws SQLException {
 		System.err.println("Error al buscar el producto" + e.getMessage());
 	}
 }
-
+public void usarCuponDescuento() throws SQLException {
+	Scanner t = new Scanner(System.in);
+	System.out.println("Ingrese su dni: ");
+	String dni_cliente = t.nextLine();
+	System.out.println("Ingrese el codigo del cupon: ");
+	int idCupon= t.nextInt();
+	
+	String q = "select descuento from cupon where id_cupon = ? and cliente_dni = ?";
+	
+	try (Connection c = conectar();
+			PreparedStatement pst = c.prepareStatement(q)){
+		pst.setInt(1, idCupon);
+		pst.setString(2, dni_cliente);
+		
+		try(ResultSet rs = pst.executeQuery()) {
+			if(rs.next()) {
+				double descuento = rs.getDouble("descuento");
+				System.out.println("Cupón valido, descuento aplicado: " + descuento + "%");
+			
+				 System.out.print("Ingrese el monto total de la compra: ");
+	                double montoCompra = t.nextDouble();
+	                t.nextLine();
+	                double montoFinal = montoCompra - (montoCompra * (descuento / 100));
+	                System.out.printf("Monto con descuento aplicado: %.2f%n", montoFinal);
+	                
+	               // marcar el cupón como usado 
+	                String update = "UPDATE cupon SET usado = TRUE WHERE id_cupon = ?";
+	                try (PreparedStatement pstUpdate = c.prepareStatement(update)) {
+	                    pstUpdate.setInt(1, idCupon);
+	                    pstUpdate.executeUpdate();
+	                    System.out.println("Cupón marcado como usado.");
+	                }
+			}else {
+				System.out.println("Cupon no valido o no pertenece al dni introducido");
+			}
+		}
+		
+	}catch(SQLException e) {
+		System.err.println("Error al usar el cupo, " + e.getMessage());
+	}
+	
+}
 }
