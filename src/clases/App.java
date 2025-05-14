@@ -1,205 +1,148 @@
 package clases;
 
 import java.sql.SQLException;
-import java.util.Scanner;
 
-public class App {
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
-	public  void menu() throws SQLException{
-		Scanner scanner = new Scanner(System.in);
-		int opcion = -1;
+public class App extends Application {
 
-		while (opcion != 0) {
+    private void mostrarMenuCliente() {
+    	Cliente cliente = new Cliente();
+    	Button btnVerCatalogo = new Button("Ver Catálogo de Productos");
+        Button btnBuscarProducto = new Button("Buscar Producto por Nombre");
+        Button btnUsarCupon = new Button("Usar Cupón de Descuento");
+        Button btnVerFacturas = new Button("Ver Mis Facturas");
+        Button btnParticiparSorteo = new Button("Participar en Sorteo");
+        Button btnConsultarCupones = new Button("Consultar Mis Cupones");
+        Button btnVolver = new Button("Volver");
+
+        btnVerCatalogo.setOnAction(e -> {
+			cliente.verCatalogoProductos();
+		});
+        btnBuscarProducto.setOnAction(e -> {
 			try {
-				System.out.println("--Bienvenido--");
-				System.out.println("Inserte su tipo de usuario:");
-				System.out.println("1. Cliente\n2. Empleado\n3. Administrador\n0. Salir");
-
-				opcion = Integer.parseInt(scanner.nextLine());
-
-				switch (opcion) {
-				case 1:
-					menuCliente(scanner);
-					break;
-				case 2:
-					menuEmpleado(scanner);
-					break;
-				case 3:
-					menuAdministrador(scanner);
-					break;
-				case 0:
-					System.out.println("Saliendo del sistema...");
-					break;
-				default:
-					System.out.println("Opción no válida.");
-				}
-			} catch (NumberFormatException e) {
-				System.err.println("Error, debe ingresar un número.");
+				cliente.buscarProductoPorNombre();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
-		}
-	}
-
-	private void menuCliente(Scanner scanner) throws SQLException {
-		Cliente cliente = new Cliente();
-		int opcion;
-		do {
-			System.out.println("-- Menú Cliente --");
-			System.out.println("1. Ver catálogo de productos");
-			System.out.println("2. Buscar producto por nombre");
-			System.out.println("3. Usar cupón de descuento");
-			System.out.println("4. Ver facturas asociadas a mi correo");
-			System.out.println("5. Participar en sorteo (si dispone de cupón válido)");
-			System.out.println("6. Consultar mis cupones disponibles");
-			System.out.println("0. Volver al menú principal");
-
-			opcion = Integer.parseInt(scanner.nextLine());
-
-			switch (opcion) {
-			case 1:
-				System.out.println("Mostrando catálogo...");
-				try {
-					cliente.verCatalogoProductos();
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 2:
-				
-				try {
-					cliente.buscarProductoPorNombre();
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 3:
-				try {
-					cliente.usarCuponDescuento();
-					
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 4:
-				try {
-					cliente.verFacturas();
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 5:
-				try {
-					cliente.participarEnSorteo();
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 6:
-				try {
-					cliente.consultarCuponesDisponibles();
-				}catch(SQLException e) {
-					e.printStackTrace();
-				}
-				break;
-			case 0:
-				break;
-			default:
-				System.out.println("Opción no válida.");
+		});
+        btnUsarCupon.setOnAction(e -> {
+			try {
+				cliente.usarCuponDescuento();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
-
-		} while (opcion != 0);
-	}
-
-	private void menuEmpleado(Scanner scanner) {
-		int opcion;
-		do {
-			System.out.println("-- Menú Empleado --");
-			System.out.println("1. Registrar nueva venta");
-			System.out.println("2. Buscar productos disponibles");
-			System.out.println("3. Ver historial de ventas registradas por mí");
-			System.out.println("4. Consultar datos de clientes");
-			System.out.println("5. Generar factura de una venta existente");
-			System.out.println("0. Volver al menú principal");
-
-			opcion = Integer.parseInt(scanner.nextLine());
-
-			switch (opcion) {
-			case 1:
-				System.out.println("Registrando venta...");
-				break;
-			case 2:
-				System.out.println("Buscando productos...");
-				break;
-			case 3:
-				System.out.println("Mostrando historial de ventas...");
-				break;
-			case 4:
-				System.out.println("Consultando clientes...");
-				break;
-			case 5:
-				System.out.println("Generando factura...");
-				break;
-			case 0:
-				break;
-			default:
-				System.out.println("Opción no válida.");
+		});
+        btnVerFacturas.setOnAction(e -> {
+			try {
+				cliente.verFacturas();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
-
-		} while (opcion != 0);
-	}
-
-	private void menuAdministrador(Scanner scanner) {
-		int opcion;
-		do {
-			System.out.println("-- Menú Administrador --");
-			System.out.println("1. Gestión de productos");
-			System.out.println("2. Gestión de proveedores");
-			System.out.println("3. Gestión de empleados");
-			System.out.println("4. Gestión de ventas");
-			System.out.println("5. Gestión de facturación");
-			System.out.println("6. Gestión de cupones");
-			System.out.println("7. Gestión de sorteos");
-			System.out.println("0. Volver al menú principal");
-
-			opcion = Integer.parseInt(scanner.nextLine());
-
-			switch (opcion) {
-			case 1:
-				System.out.println("Accediendo a gestión de productos...");
-				break;
-			case 2:
-				System.out.println("Accediendo a gestión de proveedores...");
-				break;
-			case 3:
-				System.out.println("Accediendo a gestión de empleados...");
-				break;
-			case 4:
-				System.out.println("Accediendo a gestión de ventas...");
-				break;
-			case 5:
-				System.out.println("Accediendo a gestión de facturación...");
-				break;
-			case 6:
-				System.out.println("Accediendo a gestión de cupones...");
-				break;
-			case 7:
-				System.out.println("Accediendo a gestión de sorteos...");
-				break;
-			case 0:
-				break;
-			default:
-				System.out.println("Opción no válida.");
+		});
+        btnParticiparSorteo.setOnAction(e -> {
+			try {
+				cliente.participarEnSorteo();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
+		});
+        btnConsultarCupones.setOnAction(e -> {
+			try {
+				cliente.consultarCuponesDisponibles();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		});
+        btnVolver.setOnAction(e -> {
+            
+            ((Stage) btnVolver.getScene().getWindow()).close();
 
-		} while (opcion != 0);
-	}
+        });
+        VBox layout = new VBox(10);
+        layout.setStyle("-fx-padding: 20;");
+        layout.getChildren().addAll(
+            new Label("Menú Cliente:"),
+            btnVerCatalogo,
+            btnBuscarProducto,
+            btnUsarCupon,
+            btnVerFacturas,
+            btnParticiparSorteo,
+            btnConsultarCupones,
+            btnVolver
+        );
+        Scene scene = new Scene(layout, 350, 400);
+        Stage stage = new Stage();
+        stage.setTitle("Menú Cliente");
+        stage.setScene(scene);
+        stage.show();
+    }
 
-	public static void main(String[] args) {
-		try {
-			new App().menu();
-		}catch(SQLException e) {
-			e.printStackTrace();
-		}
+    private void mostrarMenuEmpleado() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Menú Empleado");
+        alert.setHeaderText("Opciones para Empleado");
+        alert.setContentText("1. Registrar nueva venta\n2. Buscar productos disponibles\n3. Ver historial de ventas registradas");
+        alert.showAndWait();
+    }
 
-	}
+    private void mostrarMenuAdministrador() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Menú Administrador");
+        alert.setHeaderText("Opciones para Administrador");
+        alert.setContentText("1. Gestión de productos\n2. Gestión de proveedores\n3. Gestión de empleados");
+        alert.showAndWait();
+    }
 
+    @Override
+    public void start(Stage stage) {
+        // Crear la interfaz gráfica
+        VBox vbox = new VBox(10); // Espaciado entre los elementos
+        vbox.setStyle("-fx-padding: 20;");
+
+        // Crear los botones de cada opción
+        Button btnCliente = new Button("Cliente");
+        Button btnEmpleado = new Button("Empleado");
+        Button btnAdministrador = new Button("Administrador");
+        Button btnSalir = new Button("Salir");
+
+        // Acción al hacer clic en Cliente
+        btnCliente.setOnAction(e -> mostrarMenuCliente());
+
+        // Acción al hacer clic en Empleado
+        btnEmpleado.setOnAction(e -> mostrarMenuEmpleado());
+
+        // Acción al hacer clic en Administrador
+        btnAdministrador.setOnAction(e -> mostrarMenuAdministrador());
+
+        // Acción al hacer clic en Salir
+        btnSalir.setOnAction(e -> stage.close()); // Cierra la ventana
+
+        // Agregar botones a la interfaz
+        vbox.getChildren().addAll(btnCliente, btnEmpleado, btnAdministrador, btnSalir);
+
+        // Crear la escena
+        Scene scene = new Scene(vbox, 300, 200);
+
+        // Configurar el escenario
+        stage.setTitle("Menú Principal");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 }

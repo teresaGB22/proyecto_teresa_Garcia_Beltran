@@ -5,10 +5,10 @@
  * 
  */
 module proyecto {
-	requires jdk.javadoc;
+	requires javafx.controls;
+    requires javafx.graphics;
+    requires javafx.base;
+    requires java.sql;
 	requires java.desktop;
-	requires java.xml;
-	requires jdk.compiler;
-	requires jdk.jpackage;
-	requires java.sql;
+    exports clases;
 }

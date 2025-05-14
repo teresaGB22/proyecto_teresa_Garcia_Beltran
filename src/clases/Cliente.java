@@ -9,6 +9,16 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
 public class Cliente {
     private String dni;
     private String nombre;
@@ -57,52 +67,108 @@ public class Cliente {
         this.email = email;
     }
 
-    public void verCatalogoProductos() throws SQLException {
-        System.out.println("Mostrando catálogo de productos...");
-        String q = "select pev.cantidad, p.id_producto, p.nombre, p.precio " +
-                   "from producto_en_venta pev " +
-                   "join producto p on pev.producto_id = p.id_producto";
+    public void verCatalogoProductos() {
+        ListView<String> listaProductos = new ListView<>();
+
+        String q = "SELECT pev.cantidad, p.id_producto, p.nombre, p.precio " +
+                   "FROM producto_en_venta pev " +
+                   "JOIN producto p ON pev.producto_id = p.id_producto";
 
         try (Connection c = ConexionBD.obtenerConexion();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(q)) {
 
             while (rs.next()) {
-                System.out.println("Producto: " + rs.getString("nombre") +
-                                   ", precio: " + rs.getDouble("precio") +
-                                   ", stock disponible: " + rs.getInt("cantidad"));
+                String nombre = rs.getString("nombre");
+                double precio = rs.getDouble("precio");
+                int cantidad = rs.getInt("cantidad");
+
+                String productoInfo = "Producto: " + nombre +
+                                      ", Precio: " + precio +
+                                      ", Stock: " + cantidad;
+                listaProductos.getItems().add(productoInfo);
             }
+
+        } catch (SQLException e) {
+            Alert error = new Alert(Alert.AlertType.ERROR);
+            error.setTitle("Error");
+            error.setHeaderText("No se pudo cargar el catálogo");
+            error.setContentText(e.getMessage());
+            error.showAndWait();
+            return;
         }
+
+        VBox layout = new VBox(10);
+        layout.setStyle("-fx-padding: 20;");
+        layout.getChildren().addAll(new Label("Catálogo de Productos:"), listaProductos);
+
+        Scene scene = new Scene(layout, 400, 300);
+        Stage stage = new Stage();
+        stage.setTitle("Catálogo de Productos");
+        stage.setScene(scene);
+        stage.show();
     }
 
     public void buscarProductoPorNombre() throws SQLException {
-        Scanner t = new Scanner(System.in);
-        System.out.println("Introduce el nombre del producto que quiere buscar:");
-        String nombreBuscar = t.nextLine();
+    	Stage ventana = new Stage();
+        ventana.setTitle("Buscar Producto por Nombre");
 
-        String q = "select p.id_producto, p.nombre, p.precio, sum(pev.cantidad) as total_cantidad " +
-                   "from producto p join producto_en_venta pev on p.id_producto = pev.producto_id " +
-                   "where p.nombre like ? group by p.id_producto, p.nombre, p.precio";
+        VBox layout = new VBox(10);
+        layout.setStyle("-fx-padding: 15;");
 
-        try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pst = c.prepareStatement(q)) {
+        Label lblInstruccion = new Label("Introduce el nombre del producto:");
+        TextField inputNombre = new TextField();
+        Button btnBuscar = new Button("Buscar");
+        TextArea resultados = new TextArea();
+        resultados.setEditable(false);
 
-            pst.setString(1, "%" + nombreBuscar + "%");
-            ResultSet rs = pst.executeQuery();
-            boolean encontrado = false;
-
-            while (rs.next()) {
-                encontrado = true;
-                System.out.println("Id del producto: " + rs.getInt("id_producto") +
-                                   ", Nombre: " + rs.getString("nombre") +
-                                   ", Precio: " + rs.getDouble("precio") +
-                                   ", Stock: " + rs.getInt("total_cantidad"));
+        btnBuscar.setOnAction(e -> {
+            String nombreBuscar = inputNombre.getText().trim();
+            if (nombreBuscar.isEmpty()) {
+                resultados.setText("Por favor introduce un nombre.");
+                return;
             }
 
-            if (!encontrado) {
-                System.out.println("No se encontraron productos con ese nombre.");
+            String q = "SELECT p.id_producto, p.nombre, p.precio, SUM(pev.cantidad) AS total_cantidad " +
+                       "FROM producto p JOIN producto_en_venta pev ON p.id_producto = pev.producto_id " +
+                       "WHERE p.nombre LIKE ? GROUP BY p.id_producto, p.nombre, p.precio";
+
+            try (Connection c = ConexionBD.obtenerConexion();
+                 PreparedStatement pst = c.prepareStatement(q)) {
+
+                pst.setString(1, "%" + nombreBuscar + "%");
+                ResultSet rs = pst.executeQuery();
+                StringBuilder sb = new StringBuilder();
+                boolean encontrado = false;
+
+                while (rs.next()) {
+                    encontrado = true;
+                    sb.append("ID: ").append(rs.getInt("id_producto"))
+                      .append(", Nombre: ").append(rs.getString("nombre"))
+                      .append(", Precio: ").append(rs.getDouble("precio"))
+                      .append(", Stock: ").append(rs.getInt("total_cantidad"))
+                      .append("\n");
+                }
+
+                if (!encontrado) {
+                    resultados.setText("No se encontraron productos con ese nombre.");
+                } else {
+                    resultados.setText(sb.toString());
+                }
+
+            } catch (SQLException ex) {
+                resultados.setText("Error al buscar productos:\n" + ex.getMessage());
+                ex.printStackTrace();
             }
-        }
+        });
+
+        Button btnCerrar = new Button("Cerrar");
+        btnCerrar.setOnAction(e -> ventana.close());
+
+        layout.getChildren().addAll(lblInstruccion, inputNombre, btnBuscar, resultados, btnCerrar);
+        Scene escena = new Scene(layout, 400, 300);
+        ventana.setScene(escena);
+        ventana.show();
     }
 
     public void usarCuponDescuento() throws SQLException {
