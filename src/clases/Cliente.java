@@ -219,7 +219,7 @@ public class Cliente {
                               .append("Descuento aplicado: ").append(descuento).append("%\n")
                               .append("Monto final: ").append(String.format("%.2f", montoFinal)).append("\n");
 
-                            // Actualizar si el cupon esta usado 
+                            
                             String update = "update cupon set usado = true where id_cupon = ?";
                             try (PreparedStatement pstUpdate = c.prepareStatement(update)) {
                                 pstUpdate.setInt(1, idCupon);
