@@ -10,5 +10,9 @@ module proyecto {
     requires javafx.base;
     requires java.sql;
 	requires java.desktop;
+	requires kernel;
+	requires styled.xml.parser;
+	requires layout;
+	requires io;
     exports clases;
 }

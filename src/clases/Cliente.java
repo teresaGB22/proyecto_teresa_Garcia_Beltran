@@ -70,9 +70,9 @@ public class Cliente {
     public void verCatalogoProductos() {
         ListView<String> listaProductos = new ListView<>();
 
-        String q = "SELECT pev.cantidad, p.id_producto, p.nombre, p.precio " +
-                   "FROM producto_en_venta pev " +
-                   "JOIN producto p ON pev.producto_id = p.id_producto";
+        String q = "select pev.cantidad, p.id_producto, p.nombre, p.precio " +
+                   "from producto_en_venta pev " +
+                   "join producto p on pev.producto_id = p.id_producto";
 
         try (Connection c = ConexionBD.obtenerConexion();
              Statement st = c.createStatement();
@@ -129,9 +129,9 @@ public class Cliente {
                 return;
             }
 
-            String q = "SELECT p.id_producto, p.nombre, p.precio, SUM(pev.cantidad) AS total_cantidad " +
-                       "FROM producto p JOIN producto_en_venta pev ON p.id_producto = pev.producto_id " +
-                       "WHERE p.nombre LIKE ? GROUP BY p.id_producto, p.nombre, p.precio";
+            String q = "select p.id_producto, p.nombre, p.precio, sum(pev.cantidad) as total_cantidad " +
+                       "from producto p join producto_en_venta pev on p.id_producto = pev.producto_id " +
+                       "where p.nombre LIKE ? group by p.id_producto, p.nombre, p.precio";
 
             try (Connection c = ConexionBD.obtenerConexion();
                  PreparedStatement pst = c.prepareStatement(q)) {
@@ -171,47 +171,104 @@ public class Cliente {
         ventana.show();
     }
 
-    public void usarCuponDescuento() throws SQLException {
-        Scanner t = new Scanner(System.in);
-        System.out.println("Ingrese el código del cupón: ");
-        int idCupon = t.nextInt();
+    public void usarCuponDescuento(String dniCliente) throws SQLException {
+    	Stage ventana = new Stage();
+        ventana.setTitle("Usar Cupón de Descuento");
 
-        String q = "select descuento from cupon where id_cupon = ? and cliente_dni = ? and usado = false";
+        VBox layout = new VBox(10);
+        layout.setStyle("-fx-padding: 15;");
 
-        try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pst = c.prepareStatement(q)) {
+        Label lblCodigo = new Label("Código del cupón:");
+        TextField inputCodigo = new TextField();
 
-            pst.setInt(1, idCupon);
-            pst.setString(2, dni);
+        Label lblMonto = new Label("Monto total de la compra:");
+        TextField inputMonto = new TextField();
 
-            try (ResultSet rs = pst.executeQuery()) {
-                if (rs.next()) {
-                    double descuento = rs.getDouble("descuento");
-                    System.out.println("Cupón válido, descuento aplicado: " + descuento + "%");
+        Button btnAplicar = new Button("Aplicar Descuento");
+        TextArea resultado = new TextArea();
+        resultado.setEditable(false);
 
-                    System.out.print("Ingrese el monto total de la compra: ");
-                    double montoCompra = t.nextDouble();
-                    double montoFinal = montoCompra - (montoCompra * (descuento / 100));
-                    System.out.printf("Monto con descuento aplicado: %.2f%n", montoFinal);
+        btnAplicar.setOnAction(e -> {
+            String codigoStr = inputCodigo.getText().trim();
+            String montoStr = inputMonto.getText().trim();
 
-                    String update = "update cupon set usado = true where id_cupon = ?";
-                    try (PreparedStatement pstUpdate = c.prepareStatement(update)) {
-                        pstUpdate.setInt(1, idCupon);
-                        pstUpdate.executeUpdate();
-                        System.out.println("Cupón marcado como usado.");
-                    }
-                } else {
-                    System.out.println("Cupón no válido o ya fue usado.");
-                }
+            if (codigoStr.isEmpty() || montoStr.isEmpty()) {
+                resultado.setText("Debes introducir el código del cupón y el monto de la compra.");
+                return;
             }
-        }
+
+            try {
+                int idCupon = Integer.parseInt(codigoStr);
+                double montoCompra = Double.parseDouble(montoStr);
+
+                String q = "select descuento from cupon where id_cupon = ? and cliente_dni = ? and usado = false";
+
+                try (Connection c = ConexionBD.obtenerConexion();
+                     PreparedStatement pst = c.prepareStatement(q)) {
+
+                    pst.setInt(1, idCupon);
+                    pst.setString(2, dniCliente);
+
+                    try (ResultSet rs = pst.executeQuery()) {
+                        if (rs.next()) {
+                            double descuento = rs.getDouble("descuento");
+                            double montoFinal = montoCompra - (montoCompra * (descuento / 100));
+
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Cupón válido.\n")
+                              .append("Descuento aplicado: ").append(descuento).append("%\n")
+                              .append("Monto final: ").append(String.format("%.2f", montoFinal)).append("\n");
+
+                            // Actualizar si el cupon esta usado 
+                            String update = "update cupon set usado = true where id_cupon = ?";
+                            try (PreparedStatement pstUpdate = c.prepareStatement(update)) {
+                                pstUpdate.setInt(1, idCupon);
+                                pstUpdate.executeUpdate();
+                                sb.append("Cupón marcado como usado.");
+                            }
+
+                            resultado.setText(sb.toString());
+                        } else {
+                            resultado.setText("Cupón no válido o ya fue usado.");
+                        }
+                    }
+                }
+            } catch (NumberFormatException ex) {
+                resultado.setText("Código o monto no válidos.");
+            } catch (SQLException ex) {
+                resultado.setText("Error al acceder a la base de datos:\n" + ex.getMessage());
+                ex.printStackTrace();
+            }
+        });
+
+        Button btnCerrar = new Button("Cerrar");
+        btnCerrar.setOnAction(e2 -> ventana.close());
+
+        layout.getChildren().addAll(lblCodigo, inputCodigo, lblMonto, inputMonto, btnAplicar, resultado, btnCerrar);
+
+        Scene escena = new Scene(layout, 400, 350);
+        ventana.setScene(escena);
+        ventana.show();
     }
 
-    public void verFacturas() throws SQLException {
-        if (dni == null) {
-            System.out.println("DNI no establecido en el objeto cliente.");
-            return;
-        }
+    public void verFacturas(String dniCliente) throws SQLException {
+    	Stage ventana = new Stage();
+        ventana.setTitle("Mis Facturas");
+
+        VBox layout = new VBox(10);
+        layout.setStyle("-fx-padding: 15;");
+
+        TextArea areaFacturas = new TextArea();
+        areaFacturas.setEditable(false);
+
+        Button btnCerrar = new Button("Cerrar");
+        btnCerrar.setOnAction(e -> ventana.close());
+
+        layout.getChildren().addAll(new Label("Facturas registradas:"), areaFacturas, btnCerrar);
+
+        Scene escena = new Scene(layout, 500, 400);
+        ventana.setScene(escena);
+        ventana.show();
 
         String q = "select f.id_factura, f.venta_id, f.fecha_emision, f.total, " +
                    "v.fecha_venta, v.metodo_pago, v.metodo_envio, v.coste_envio " +
@@ -221,77 +278,122 @@ public class Cliente {
         try (Connection c = ConexionBD.obtenerConexion();
              PreparedStatement pst = c.prepareStatement(q)) {
 
-            pst.setString(1, dni);
+            pst.setString(1, dniCliente);
 
             try (ResultSet rs = pst.executeQuery()) {
+                StringBuilder sb = new StringBuilder();
                 boolean encontrado = false;
+
                 while (rs.next()) {
                     encontrado = true;
-                    System.out.println("Factura ID: " + rs.getInt("id_factura"));
-                    System.out.println("Fecha emisión: " + rs.getDate("fecha_emision"));
-                    System.out.println("Total: " + rs.getBigDecimal("total"));
-                    System.out.println("Venta ID: " + rs.getInt("venta_id"));
-                    System.out.println("Fecha venta: " + rs.getDate("fecha_venta"));
-                    System.out.println("Método pago: " + rs.getString("metodo_pago"));
-                    System.out.println("Método envío: " + rs.getString("metodo_envio"));
-                    System.out.println("Coste envío: " + rs.getBigDecimal("coste_envio"));
-                    System.out.println("-------------------------------------------------");
+                    sb.append("Factura ID: ").append(rs.getInt("id_factura")).append("\n");
+                    sb.append("Fecha emisión: ").append(rs.getDate("fecha_emision")).append("\n");
+                    sb.append("Total: ").append(rs.getBigDecimal("total")).append(" €\n");
+                    sb.append("Venta ID: ").append(rs.getInt("venta_id")).append("\n");
+                    sb.append("Fecha venta: ").append(rs.getDate("fecha_venta")).append("\n");
+                    sb.append("Método pago: ").append(rs.getString("metodo_pago")).append("\n");
+                    sb.append("Método envío: ").append(rs.getString("metodo_envio")).append("\n");
+                    sb.append("Coste envío: ").append(rs.getBigDecimal("coste_envio")).append(" €\n");
+                    sb.append("---------------------------------------------------\n");
                 }
+
                 if (!encontrado) {
-                    System.out.println("No se encontraron facturas para este cliente.");
+                    areaFacturas.setText("No se encontraron facturas para este cliente.");
+                } else {
+                    areaFacturas.setText(sb.toString());
                 }
             }
+
+        } catch (SQLException ex) {
+            areaFacturas.setText("Error al cargar facturas:\n" + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
-    public void participarEnSorteo() throws SQLException {
-        String comprobacion = "select id_sorteo, resultado from sorteo where cliente_dni = ?";
-        String actualizacion = "update sorteo set resultado = ?, premio = ? where cliente_dni = ?";
-        String insertar = "insert into sorteo (resultado, premio, cliente_dni) values (?, ?, ?)";
+    public void participarEnSorteo(String dniCliente) throws SQLException {
+        if (dniCliente == null || dniCliente.isBlank()) {
+            Alert alerta = new Alert(Alert.AlertType.ERROR, "El DNI no puede ser nulo ni estar vacío.");
+            alerta.show();
+            return;
+        }
 
-        List<String> premios = Arrays.asList("vale de 10€", "producto gratis", "cupón de envío gratuito", 
-                                             "descuento del 50%", "acceso a evento vip", "vale de 25€");
+        List<String> premios = Arrays.asList(
+            "vale de 10€", "producto gratis", "cupón de envío gratuito",
+            "descuento del 50%", "acceso a evento vip", "vale de 25€"
+        );
+
+        String sqlSelect = "SELECT resultado FROM sorteo WHERE cliente_dni = ?";
+        String sqlUpdate = "UPDATE sorteo SET resultado = ?, premio = ? WHERE cliente_dni = ?";
+        String sqlInsert = "INSERT INTO sorteo (resultado, premio, cliente_dni) VALUES (?, ?, ?)";
 
         try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pst = c.prepareStatement(comprobacion)) {
+             PreparedStatement pstSelect = c.prepareStatement(sqlSelect)) {
 
-            pst.setString(1, dni);
-            ResultSet rs = pst.executeQuery();
+            pstSelect.setString(1, dniCliente);
+            ResultSet rs = pstSelect.executeQuery();
 
-            String resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
-            String premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
+            String resultado;
+            String premio;
+            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+            alerta.setTitle("Resultado del sorteo");
 
             if (rs.next()) {
                 String resultadoAnterior = rs.getString("resultado");
+                if ("NO PARTICIPÓ".equalsIgnoreCase(resultadoAnterior)) {
+                    resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
+                    premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
 
-                if ("NO PARTICIPÓ".equals(resultadoAnterior)) {
-                    try (PreparedStatement updateStmt = c.prepareStatement(actualizacion)) {
-                        updateStmt.setString(1, resultado);
-                        updateStmt.setString(2, premio);
-                        updateStmt.setString(3, dni);
-                        updateStmt.executeUpdate();
-                        System.out.println("Participación actualizada. Resultado: " + resultado +
-                                           ", Premio: " + (premio != null ? premio : "ninguno"));
+                    try (PreparedStatement pstUpdate = c.prepareStatement(sqlUpdate)) {
+                        pstUpdate.setString(1, resultado);
+                        pstUpdate.setString(2, premio);
+                        pstUpdate.setString(3, dniCliente);
+                        pstUpdate.executeUpdate();
                     }
+
+                    alerta.setHeaderText("¡Participación actualizada!");
                 } else {
-                    System.out.println("Ya participó. Resultado: " + resultadoAnterior);
+                    resultado = resultadoAnterior;
+                    premio = obtenerPremioExistente(dniCliente, c);
+                    alerta.setHeaderText("Ya has participado en el sorteo");
+                }
+            } else {
+                resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
+                premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
+
+                try (PreparedStatement pstInsert = c.prepareStatement(sqlInsert)) {
+                    pstInsert.setString(1, resultado);
+                    pstInsert.setString(2, premio);
+                    pstInsert.setString(3, dniCliente);
+                    pstInsert.executeUpdate();
                 }
 
-            } else {
-                try (PreparedStatement insertStmt = c.prepareStatement(insertar)) {
-                    insertStmt.setString(1, resultado);
-                    insertStmt.setString(2, premio);
-                    insertStmt.setString(3, dni);
-                    insertStmt.executeUpdate();
-                    System.out.println("Participación registrada. Resultado: " + resultado +
-                                       ", Premio: " + (premio != null ? premio : "ninguno"));
-                }
+                alerta.setHeaderText("¡Participación registrada!");
             }
+
+            alerta.setContentText("Resultado: " + resultado + "\nPremio: " + (premio != null ? premio : "Ninguno"));
+            alerta.showAndWait();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Alert error = new Alert(Alert.AlertType.ERROR, "Error al participar en el sorteo.");
+            error.show();
         }
     }
 
+    private String obtenerPremioExistente(String dni, Connection c) throws SQLException {
+        String query = "SELECT premio FROM sorteo WHERE cliente_dni = ?";
+        try (PreparedStatement pst = c.prepareStatement(query)) {
+            pst.setString(1, dni);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return rs.getString("premio") != null ? rs.getString("premio") : "Ninguno";
+            }
+        }
+        return "Ninguno";
+    }
+
     public void consultarCuponesDisponibles() throws SQLException {
-        String q = "select id_cupon, descuento from cupon where cliente_dni = ? and usado = false";
+        String q = "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false";
 
         try (Connection c = ConexionBD.obtenerConexion();
              PreparedStatement pst = c.prepareStatement(q)) {
@@ -299,17 +401,33 @@ public class Cliente {
             pst.setString(1, dni);
             ResultSet rs = pst.executeQuery();
 
+            StringBuilder mensaje = new StringBuilder();
             boolean hayCupones = false;
-            System.out.println("Cupones disponibles:");
 
             while (rs.next()) {
                 hayCupones = true;
-                System.out.println("- Cupón #" + rs.getInt("id_cupon") + " | Descuento: " + rs.getDouble("descuento") + "%");
+                int id = rs.getInt("id_cupon");
+                double descuento = rs.getDouble("descuento");
+                mensaje.append("- Cupón #").append(id)
+                       .append(" | Descuento: ").append(descuento).append("%\n");
             }
 
-            if (!hayCupones) {
-                System.out.println("No tiene cupones disponibles actualmente.");
+            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+            alerta.setTitle("Cupones disponibles");
+
+            if (hayCupones) {
+                alerta.setHeaderText("Cupones activos:");
+                alerta.setContentText(mensaje.toString());
+            } else {
+                alerta.setHeaderText("No tiene cupones disponibles actualmente.");
+                alerta.setContentText(null);
             }
+
+            alerta.showAndWait();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Alert error = new Alert(Alert.AlertType.ERROR, "Error al consultar los cupones.");
+            error.show();
         }
     }
 }

@@ -1,29 +1,54 @@
 package clases;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import utilidades.ConexionBD;
 
 public class Producto {
 	private int idProducto;
-	private String nombreProducto;
+	private String nombre;
 	private LocalDate fechaEntrada;
 	private int stock;
 	private boolean esOnline;
 private double precio;
 	private Proveedor proveedor;
-	private Administrador administrador;
+	
 
-	public Producto() {
+	public Producto(int i, String string, int j, double d, boolean b, int id, LocalDate localDate) {
+		this.idProducto = i;
+		this.nombre = string;
+		this.stock = j;
+		this.precio = d;
+		this.esOnline = b;
+		
+		this.fechaEntrada = localDate;
 	}
 
 	public Producto(int idProducto, String nombreProducto, LocalDate fechaEntrada, int stock,double precio, boolean esOnline,
-			Proveedor proveedor, Administrador administrador) {
+			Proveedor proveedor) {
 		this.idProducto = idProducto;
-		this.nombreProducto = nombreProducto;
+		this.nombre = nombreProducto;
 		this.fechaEntrada = fechaEntrada;
 		this.stock = stock;
 		this.esOnline = esOnline;
 		this.proveedor = proveedor;
-		this.administrador = administrador;
 		this.precio = precio;
 	}
 
@@ -43,12 +68,12 @@ private double precio;
 		this.idProducto = idProducto;
 	}
 
-	public String getNombreProducto() {
-		return nombreProducto;
+	public String getNombre() {
+		return nombre;
 	}
 
-	public void setNombreProducto(String nombreProducto) {
-		this.nombreProducto = nombreProducto;
+	public void setNombre(String nombreProducto) {
+		this.nombre = nombreProducto;
 	}
 
 	public LocalDate getFechaEntrada() {
@@ -83,13 +108,9 @@ private double precio;
 		this.proveedor = proveedor;
 	}
 
-	public Administrador getAdministrador() {
-		return administrador;
-	}
+	
 
-	public void setAdministrador(Administrador administrador) {
-		this.administrador = administrador;
-	}
+	
 	
 	
 }

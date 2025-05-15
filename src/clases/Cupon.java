@@ -4,6 +4,8 @@ public class Cupon {
 private int id_cupon;
 private double descuento;
 private Cliente cliente;
+private Promocion promocion;
+
 public Cupon(int id_cupon, double descuento, Cliente cliente) {
 	this.id_cupon = id_cupon;
 	this.descuento = descuento;
@@ -26,6 +28,12 @@ public Cliente getCliente() {
 }
 public void setCliente(Cliente cliente) {
 	this.cliente = cliente;
+}
+public Promocion getPromocion() {
+	return promocion;
+}
+public void setPromocion(Promocion promocion) {
+	this.promocion = promocion;
 }
 
 }
