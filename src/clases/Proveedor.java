@@ -191,12 +191,12 @@ public void gestionarProductos() {
     Button btnEliminarProducto = new Button("Eliminar Producto");
     Button btnVolver = new Button("Volver");
 
-    // Acción de agregar producto
+    
     btnAgregarProducto.setOnAction(e -> {
         mostrarFormularioProducto(null, tablaProductos);
     });
 
-    // Acción de modificar producto
+    
     btnModificarProducto.setOnAction(e -> {
         Producto productoSeleccionado = tablaProductos.getSelectionModel().getSelectedItem();
         if (productoSeleccionado != null) {
@@ -487,7 +487,7 @@ public void verPedidos() {
 	            pst.executeUpdate();
 
 	            lblInfo.setText("Estado actualizado.");
-	            cargarPedidos.run(); // recargar
+	            cargarPedidos.run(); 
 
 	        } catch (SQLException ex) {
 	            ex.printStackTrace();
