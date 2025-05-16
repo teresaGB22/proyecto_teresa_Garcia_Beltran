@@ -18,13 +18,27 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
+/**
+ * Clase que representa un cliente del sistema.
+ * Proporciona funcionalidades para consultar productos, aplicar cupones,
+ * ver facturas y participar en sorteos mediante interfaces gráficas.
+ * 
+ * @author Teresa
+ * @version 1.0
+ */
 public class Cliente {
     private String dni;
     private String nombre;
     private String apellidos;
     private String email;
-
+    /**
+     * Constructor completo de Cliente.
+     * 
+     * @param dni       Documento Nacional de Identidad del cliente.
+     * @param nombre    Nombre del cliente.
+     * @param apellidos Apellidos del cliente.
+     * @param email     Correo electrónico del cliente.
+     */
     public Cliente(String dni, String nombre, String apellidos, String email) {
         this.dni = dni;
         this.nombre = nombre;
@@ -34,15 +48,15 @@ public class Cliente {
 
     public Cliente() {
     }
-
+    
     public String getDni() {
         return dni;
     }
-
+   
     public void setDni(String dni) {
         this.dni = dni;
     }
-
+    
     public String getNombre() {
         return nombre;
     }
@@ -66,7 +80,10 @@ public class Cliente {
     public void setEmail(String email) {
         this.email = email;
     }
-
+    /**
+     * Muestra una ventana con el catálogo de productos disponibles para la venta,
+     * mostrando nombre, precio y stock.
+     */
     public void verCatalogoProductos() {
         ListView<String> listaProductos = new ListView<>();
 
@@ -108,7 +125,12 @@ public class Cliente {
         stage.setScene(scene);
         stage.show();
     }
-
+    /**
+     * Muestra una ventana para buscar productos por nombre en el catálogo.
+     * Se realiza la búsqueda con consulta SQL usando LIKE.
+     * 
+     * @throws SQLException en caso de error en la consulta a la base de datos.
+     */
     public void buscarProductoPorNombre() throws SQLException {
     	Stage ventana = new Stage();
         ventana.setTitle("Buscar Producto por Nombre");
@@ -170,7 +192,13 @@ public class Cliente {
         ventana.setScene(escena);
         ventana.show();
     }
-
+    /**
+     * Permite al cliente aplicar un cupón de descuento a una compra,
+     * verificando su validez y actualizando el estado del cupón.
+     * 
+     * @param dniCliente DNI del cliente que usa el cupón.
+     * @throws SQLException en caso de error en la base de datos.
+     */
     public void usarCuponDescuento(String dniCliente) throws SQLException {
     	Stage ventana = new Stage();
         ventana.setTitle("Usar Cupón de Descuento");
@@ -250,7 +278,12 @@ public class Cliente {
         ventana.setScene(escena);
         ventana.show();
     }
-
+    /**
+     * Muestra las facturas asociadas al cliente.
+     * 
+     * @param dniCliente DNI del cliente cuyas facturas se consultan.
+     * @throws SQLException en caso de error en la base de datos.
+     */
     public void verFacturas(String dniCliente) throws SQLException {
     	Stage ventana = new Stage();
         ventana.setTitle("Mis Facturas");
@@ -309,7 +342,13 @@ public class Cliente {
             ex.printStackTrace();
         }
     }
-
+    /**
+     * Permite al cliente participar en un sorteo,
+     * asignando un resultado (ganador o perdedor) y un premio si corresponde.
+     * 
+     * @param dniCliente DNI del cliente participante.
+     * @throws SQLException en caso de error en la base de datos.
+     */
     public void participarEnSorteo(String dniCliente) throws SQLException {
         if (dniCliente == null || dniCliente.isBlank()) {
             Alert alerta = new Alert(Alert.AlertType.ERROR, "El DNI no puede ser nulo ni estar vacío.");
@@ -379,7 +418,14 @@ public class Cliente {
             error.show();
         }
     }
-
+    /**
+     * Consulta el premio ya asignado al cliente en el sorteo.
+     * 
+     * @param dni DNI del cliente.
+     * @param c   Conexión abierta a la base de datos.
+     * @return el premio asignado o "Ninguno" si no tiene premio.
+     * @throws SQLException en caso de error en la base de datos.
+     */
     private String obtenerPremioExistente(String dni, Connection c) throws SQLException {
         String query = "SELECT premio FROM sorteo WHERE cliente_dni = ?";
         try (PreparedStatement pst = c.prepareStatement(query)) {
@@ -391,7 +437,11 @@ public class Cliente {
         }
         return "Ninguno";
     }
-
+    /**
+     * Consulta y muestra los cupones de descuento disponibles para el cliente.
+     * 
+     * @throws SQLException en caso de error en la consulta a la base de datos.
+     */
     public void consultarCuponesDisponibles() throws SQLException {
         String q = "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false";
 

@@ -256,7 +256,7 @@ private ObservableList<Producto> cargarProductos() {
     try (Connection con = ConexionBD.obtenerConexion();
          PreparedStatement pst = con.prepareStatement(sql)) {
 
-        // Asegúrate que this.idProveedor esté asignado correctamente
+       
         System.out.println("Cargando productos para proveedor: " + this.idProveedor);
         pst.setInt(1, this.idProveedor);
 
@@ -619,6 +619,12 @@ public void gestionVentas() {
     ventana.show();
 }
 public void actualizarPerfil() {
+	try {
+		cargarDatosDesdeBD();
+	} catch (SQLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
     Stage ventana = new Stage();
     ventana.setTitle("Actualizar Perfil - Proveedor");
 
@@ -684,19 +690,23 @@ public void actualizarPerfil() {
     btnGuardar.setOnAction(e -> {
         String nombre = txtNombre.getText();
         String email = txtEmail.getText();
+        String telefono = txtTelefono.getText();
+        String apellidos = txtApellidos.getText();
+        String direccionFiscal = txtDireccionFiscal.getText();
+        String cuentaBancaria = txtCuentaBancaria.getText();
 
         if (nombre == null || nombre.trim().isEmpty() || email == null || email.trim().isEmpty()) {
             lblEstado.setText("Nombre y Email son obligatorios.");
             return;
         }
 
-        this.nombre = nombre.trim();
-        this.apellidos = txtApellidos.getText() != null ? txtApellidos.getText().trim() : "";
-        this.telefono = txtTelefono.getText() != null ? txtTelefono.getText().trim() : "";
-        this.email = email.trim();
-        this.direccionFiscal = txtDireccionFiscal.getText() != null ? txtDireccionFiscal.getText().trim() : "";
-        this.cuentaBancaria = txtCuentaBancaria.getText() != null ? txtCuentaBancaria.getText().trim() : "";
-
+        this.nombre = nombre;
+        this.apellidos = apellidos;
+        this.telefono = telefono;
+        this.email = email;
+        this.direccionFiscal = direccionFiscal;
+        this.cuentaBancaria = cuentaBancaria;
+        
         String sqlUpdate = "UPDATE proveedor SET nombre = ?, apellidos = ?, telefono = ?, email = ?, direccion_fiscal = ?, cuenta_bancaria = ? WHERE id_proveedor = ?";
 
         try (Connection con = ConexionBD.obtenerConexion();
@@ -713,33 +723,29 @@ public void actualizarPerfil() {
             int filas = pst.executeUpdate();
 
             if (filas > 0) {
-                if (archivoImagenSeleccionada[0] != null) {
-                    try {
-                        actualizarImagenProveedor(this.idProveedor, archivoImagenSeleccionada[0]);
-                    } catch (Exception ex) {
+            	lblEstado.setText("Perfil actualizado");
+            	if (archivoImagenSeleccionada[0] != null) {
+                    try (FileInputStream fis = new FileInputStream(archivoImagenSeleccionada[0]);
+                         Connection conImg = ConexionBD.obtenerConexion();
+                         PreparedStatement pstImg = conImg.prepareStatement("UPDATE proveedor SET imagen = ? WHERE id_proveedor = ?")) {
+                        
+                        pstImg.setBinaryStream(1, fis, (int) archivoImagenSeleccionada[0].length());
+                        pstImg.setInt(2, this.idProveedor);
+                        pstImg.executeUpdate();
+                        lblEstado.setText(lblEstado.getText() + " Imagen actualizada.");
+                    } catch (IOException | SQLException ex) {
                         ex.printStackTrace();
-                        lblEstado.setText("Perfil actualizado, pero error al actualizar la imagen.");
-                        return;
+                        lblEstado.setText("Error al actualizar la imagen.");
                     }
                 }
-                lblEstado.setText("Perfil actualizado correctamente.");
-                cargarDatosDesdeBD();
-
-                // Actualiza campos visuales
-                txtNombre.setText(this.nombre);
-                txtApellidos.setText(this.apellidos);
-                txtTelefono.setText(this.telefono);
-                txtEmail.setText(this.email);
-                txtDireccionFiscal.setText(this.direccionFiscal);
-                txtCuentaBancaria.setText(this.cuentaBancaria);
 
             } else {
                 lblEstado.setText("No se pudo actualizar el perfil.");
             }
 
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            lblEstado.setText("Error en la base de datos.");
+        } catch (SQLException e1) {
+            e1.printStackTrace();
+            lblEstado.setText("Error al actualizar el perfil.");
         }
     });
 
