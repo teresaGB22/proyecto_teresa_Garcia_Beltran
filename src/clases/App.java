@@ -219,7 +219,7 @@ public class App extends Application {
         Button btnPedidos = new Button("Ver pedidos");
         Button btnVentas = new Button("Gestion de ventas");
         Button btnPerfil = new Button("Actualizar el perfil");
-        Button btnSorteos = new Button("Promociones y cupones");
+        Button btnCupones = new Button("Promociones y cupones");
         Button btnVolver = new Button("Volver");
         btnproductos.setOnAction(e ->{
         	p.gestionarProductos();
@@ -236,6 +236,9 @@ public class App extends Application {
         btnPerfil.setOnAction(e ->{
         	p.actualizarPerfil();
         });
+        btnCupones.setOnAction(e ->{
+        	p.gestionPromocionesCupones();
+        });
         btnVolver.setOnAction(e -> {
             
             ((Stage) btnVolver.getScene().getWindow()).close();
@@ -249,7 +252,7 @@ public class App extends Application {
             btnPedidos,
             btnVentas,
             btnPerfil,
-            btnSorteos,
+            btnCupones,
             btnVolver
         );
         Scene scene = new Scene(layout, 350, 400);

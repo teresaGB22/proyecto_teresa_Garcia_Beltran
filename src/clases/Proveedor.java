@@ -13,6 +13,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 
+import com.itextpdf.kernel.colors.Lab;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,6 +25,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -35,7 +40,11 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utilidades.ConexionBD;
-
+/*
+  Clase que representa a un proveedor en el sistema.
+  Contiene la información personal del proveedor y funcionalidades
+  para gestionar productos, pedidos y ventas asociados.
+ */
 public class Proveedor {
 private int idProveedor;
 private String nombre;
@@ -46,12 +55,27 @@ private String telefono;
 private String email;
 private String direccionFiscal;
 private String cuentaBancaria;
-public Proveedor() {}
 
+public Proveedor() {}
+/**
+ Constructor con ID y nombre.
+ @param idProveedor ID del proveedor.
+  @param nombre Nombre del proveedor.
+ */
 public Proveedor(int idProveedor, String nombre) {
 	this.idProveedor = idProveedor;
 	this.nombre = nombre;
 }
+/**
+ Constructor con varios datos del proveedor.
+ @param idAdministrador ID del administrador (no usado en la clase actual).
+ @param usuario Usuario (no usado en la clase actual).
+ @param contrasenya Contraseña (no usada en la clase actual).
+  @param idProveedor ID del proveedor.
+  @param nombre Nombre del proveedor.
+  @param apellidos Apellidos del proveedor.
+  @param fecha_nac Fecha de nacimiento del proveedor.
+ */
 
 public Proveedor(int idAdministrador, String usuario, String contrasenya, int idProveedor, String nombre,
 		String apellidos, LocalDate fecha_nac) {
@@ -62,6 +86,7 @@ public Proveedor(int idAdministrador, String usuario, String contrasenya, int id
 	this.fecha_nac = fecha_nac;
 	
 }
+// === Métodos Getters y Setters ===
 
 public int getIdProveedor() {
 	return idProveedor;
@@ -127,7 +152,13 @@ public String getCuentaBancaria() {
 public void setCuentaBancaria(String cuentaBancaria) {
 	this.cuentaBancaria = cuentaBancaria;
 }
-
+/**
+ * Registra un nuevo proveedor en la base de datos.
+ * @param dni DNI del proveedor.
+ * @param nombre Nombre del proveedor.
+ * @param apellidos Apellidos del proveedor.
+ * @return ID generado del nuevo proveedor o -1 si falla.
+ */
 public int registrarNuevoProveedor(String dni, String nombre, String apellidos) {
 	String q = "INSERT INTO proveedor (dni, nombre, apellidos) VALUES (?, ?, ?)";
 
@@ -146,7 +177,7 @@ public int registrarNuevoProveedor(String dni, String nombre, String apellidos) 
             this.dni = dni;
             this.nombre = nombre;
             this.apellidos = apellidos;
-            this.idProveedor = rs.getInt(1);
+            
             System.out.println("Proveedor registrado con ID: " + this.idProveedor);
             return this.idProveedor;
         }
@@ -157,7 +188,10 @@ public int registrarNuevoProveedor(String dni, String nombre, String apellidos) 
     return -1; 
 }
 
-
+/**
+ * Abre una ventana de gestión de productos asociados al proveedor.
+ * Permite agregar, modificar y eliminar productos.
+ */
 public void gestionarProductos() {
 	
     Stage ventanaGestionProductos = new Stage();
@@ -247,7 +281,10 @@ public void gestionarProductos() {
     ventanaGestionProductos.show();
 }
 
-
+/**
+ * Carga todos los productos asociados al proveedor desde la base de datos.
+ * @return Lista observable de productos.
+ */
 private ObservableList<Producto> cargarProductos() {
 	ObservableList<Producto> lista = FXCollections.observableArrayList();
 
@@ -279,6 +316,15 @@ private ObservableList<Producto> cargarProductos() {
 
     return lista;
 }
+/**
+ * Modifica los datos de un producto existente.
+ * @param idProducto ID del producto.
+ * @param nombre Nombre nuevo.
+ * @param stock Stock nuevo.
+ * @param precio Precio nuevo.
+ * @param esOnline Indica si está disponible online.
+ */
+
 protected void modificarProducto(int idProducto, String nombre, int stock, double precio, boolean esOnline) {
     String query = "UPDATE producto SET nombre = ?, stock = ?, precio = ?, es_online = ? WHERE id_producto = ?";
     
@@ -297,13 +343,20 @@ protected void modificarProducto(int idProducto, String nombre, int stock, doubl
     }
 }
 
-//Método para actualizar la tabla de productos
+/**
+ * Actualiza la tabla con los productos más recientes del proveedor.
+ * @param tablaProductos Tabla de productos a actualizar.
+ */
 private void actualizarTablaProductos(TableView<Producto> tablaProductos) {
 ObservableList<Producto> listaProductos = cargarProductos(); 
 tablaProductos.setItems(listaProductos);
 }
    
-// Método para mostrar el formulario de agregar/modificar producto
+/**
+ * Muestra el formulario para agregar o modificar un producto.
+ * @param producto Producto existente o null si se va a crear uno nuevo.
+ * @param tablaProductos Tabla de productos a actualizar tras la acción.
+ */
 private void mostrarFormularioProducto(Producto producto, TableView<Producto> tablaProductos) {
     Stage ventanaFormulario = new Stage();
     ventanaFormulario.setTitle(producto == null ? "Agregar Producto" : "Modificar Producto");
@@ -354,7 +407,13 @@ private void mostrarFormularioProducto(Producto producto, TableView<Producto> ta
     ventanaFormulario.show();
 }
 
-// Método para agregar un nuevo producto a la base de datos
+/**
+ * Inserta un nuevo producto en la base de datos.
+ * @param nombre Nombre del producto.
+ * @param stock Stock disponible.
+ * @param precio Precio del producto.
+ * @param esOnline Indica si está disponible online.
+ */
 private void agregarProducto( String nombre, int stock, double precio, boolean esOnline) {
 	if (this.idProveedor <= 0) {
         System.out.println("Error: El proveedor aún no ha sido registrado en la base de datos.");
@@ -379,7 +438,10 @@ private void agregarProducto( String nombre, int stock, double precio, boolean e
         e.printStackTrace();
     }
 }
-
+/**
+ * Elimina un producto de la base de datos.
+ * @param producto Producto a eliminar.
+ */
 private void eliminarProducto(Producto producto) {
     String query = "DELETE FROM producto WHERE id_producto = ?";
     
@@ -392,7 +454,10 @@ private void eliminarProducto(Producto producto) {
         e.printStackTrace();
     }
 }
-
+/**
+ * Muestra los pedidos asociados a los productos del proveedor.
+ * Permite aplicar filtros y actualizar el estado de los pedidos.
+ */
 public void verPedidos() {
 	 Stage ventana = new Stage();
 	    ventana.setTitle("Pedidos de mis productos");
@@ -517,6 +582,10 @@ public void verPedidos() {
 
 	    cargarPedidos.run();
 	}
+/**
+ * Muestra el historial de ventas de los productos del proveedor.
+ * También muestra estadísticas y permite descargar facturas.
+ */
 public void gestionVentas() {
     Stage ventana = new Stage();
     ventana.setTitle("Gestión de Ventas");
@@ -618,6 +687,11 @@ public void gestionVentas() {
     ventana.setScene(scene);
     ventana.show();
 }
+/**
+ * Permite al proveedor actualizar su perfil mostrando una ventana con los campos editables.
+ * Carga los datos actuales desde la base de datos, permite modificar campos y cambiar la imagen.
+ * Al guardar, actualiza la base de datos con los nuevos datos y la imagen seleccionada.
+ */
 public void actualizarPerfil() {
 	try {
 		cargarDatosDesdeBD();
@@ -770,6 +844,14 @@ public void actualizarPerfil() {
     ventana.setScene(scene);
     ventana.show();
 }
+/**
+ * Actualiza la imagen del proveedor en la base de datos.
+ * 
+ * @param idProveedor ID del proveedor cuyo imagen se actualizará.
+ * @param archivoImagen Archivo de imagen que se desea guardar.
+ * @throws SQLException Si ocurre un error durante la operación con la base de datos.
+ * @throws IOException Si ocurre un error al leer el archivo de imagen.
+ */
 public void actualizarImagenProveedor(int idProveedor, File archivoImagen) throws SQLException, IOException {
     String sql = "UPDATE proveedor SET imagen = ? WHERE id_proveedor = ?";
     try (Connection con = ConexionBD.obtenerConexion();
@@ -781,6 +863,14 @@ public void actualizarImagenProveedor(int idProveedor, File archivoImagen) throw
     }
     
 }
+/**
+ * Carga la imagen del proveedor desde la base de datos.
+ * 
+ * @param idProveedor ID del proveedor del cual se desea obtener la imagen.
+ * @return Imagen del proveedor como objeto {@link Image}, o null si no existe imagen.
+ * @throws SQLException Si ocurre un error en la consulta a la base de datos.
+ * @throws IOException Si ocurre un error al leer el flujo de datos de la imagen.
+ */
 public Image cargarImagenProveedor(int idProveedor) throws SQLException, IOException {
     String sql = "SELECT imagen FROM proveedor WHERE id_proveedor = ?";
     try (Connection con = ConexionBD.obtenerConexion();
@@ -797,6 +887,12 @@ public Image cargarImagenProveedor(int idProveedor) throws SQLException, IOExcep
     }
     return null; 
 }
+/**
+ * Carga los datos del proveedor desde la base de datos y actualiza
+ * los atributos de la instancia actual.
+ * 
+ * @throws SQLException Si ocurre un error al consultar la base de datos.
+ */
 private void cargarDatosDesdeBD() throws SQLException {
     String sql = "SELECT nombre, apellidos, telefono, email, direccion_fiscal, cuenta_bancaria FROM proveedor WHERE id_proveedor = ?";
     try (Connection con = ConexionBD.obtenerConexion();
@@ -814,8 +910,132 @@ private void cargarDatosDesdeBD() throws SQLException {
         }
     }
 }
+/**
+ * Método que permite gestionar promociones y cupones.
+ */
+public void gestionPromocionesCupones()
+{
+	
+	ListView<String> listCupones = new ListView<String>();
+	cargarCuponesActivos(listCupones);
+	Stage v = new Stage();
+	v.setTitle("Gestión de promociones y cupones.");
+	TabPane tb = new TabPane();
+	Tab tp = new Tab("Promociones");
+	VBox vp = new VBox(10);
+	vp.setPadding(new Insets(10));
+	
+	Label lblCrearPromo = new Label("Crear nueva Promocion");
+	TextField txtProducto = new TextField();
+	txtProducto.setPromptText("Nombre del producto");
+	TextField txtDescuento = new TextField();
+	txtDescuento.setPromptText("Descuento (%)");
+	Button btnCrearPromo = new Button("Crear promocion");
+	Label lblEstado = new Label();
+	
+	btnCrearPromo.setOnAction(e -> {
+		String producto = txtProducto.getText().trim();
+		String descuento = txtDescuento.getText().trim();
+		
+		if(producto.isEmpty() || descuento.isEmpty()) {
+			lblEstado.setText("Debe ingresar producto y descuento.");
+			return;
+		}
+		try {
+			double descuentoD = Double.parseDouble(descuento);
+			if(descuentoD <= 0 || descuentoD > 100) {
+				lblEstado.setText("Descuento debe ser entre 0 100");
+				return;
+			}
+			
+			String query = "INSERT INTO promocion (proveedor_id, descripcion, descuento, fecha_inicio, fecha_fin, activo) VALUES (?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), true)";
+			try (Connection conexion = ConexionBD.obtenerConexion();
+			     PreparedStatement pst = conexion.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
 
+			    pst.setInt(1, this.idProveedor);
+			    pst.setString(2, "promocion para producto " + producto);
+			    pst.setDouble(3, descuentoD);
+			    int filas = pst.executeUpdate();
+
+			    if (filas > 0) {
+			        ResultSet rs = pst.getGeneratedKeys();
+			        if (rs.next()) {
+			            int idPromocion = rs.getInt(1);
+
+			            
+			            String queryCupon = "INSERT INTO cupon (promocion_id, descuento, usado) VALUES (?, ?, false)";
+			            try (PreparedStatement pstCupon = conexion.prepareStatement(queryCupon)) {
+			                pstCupon.setInt(1, idPromocion);
+			                pstCupon.setDouble(2, descuentoD);
+			                pstCupon.executeUpdate();
+			            }
+			        }
+
+			        lblEstado.setText("Promoción creada: " + producto + " con " + descuento + " %");
+			        txtProducto.clear();
+			        txtDescuento.clear();
+			        cargarCuponesActivos(listCupones);
+			    } else {
+			        lblEstado.setText("Error de creación de promoción");
+			    }
+			
+		        
+		    } catch (SQLException e1) {
+		        e1.printStackTrace();
+		    }
+			
+			
+		}catch(NumberFormatException ex) {
+			lblEstado.setText("Descuento debe ser un numero valido");
+		}
+	});
+	Tab tc = new Tab("Cupones Activos");
+	VBox vc = new VBox(10);
+	
+	vc.setPadding(new Insets(10));
+	
+	cargarCuponesActivos(listCupones);
+	vc.getChildren()
+.addAll(new Label("Cupones activos: "), listCupones);
+	tc.setContent(vc);
+	
+	vp.getChildren()
+.addAll(lblCrearPromo,txtProducto,txtDescuento,btnCrearPromo,lblEstado);
+	tp.setContent(vp);
+	 tb.getTabs().addAll(tp, tc);
+
+	    Scene scene = new Scene(tb, 500, 400);
+	    v.setScene(scene);
+	    v.show();
 }
 
+private void cargarCuponesActivos(ListView<String> listCupones) {
+	listCupones.getItems().clear();
+	String sql = "{call cargar_cupones_existentes(?)}";
+	try(Connection c = ConexionBD.obtenerConexion();
+			PreparedStatement pst = c.prepareStatement(sql)){
+		pst.setInt(1, this.idProveedor);
+		try(ResultSet rs = pst.executeQuery()) {
+		    boolean hayCupones = false;
+		    while (rs.next()) {
+		        int idCupon = rs.getInt("id_cupon");
+		        double descuento = rs.getDouble("descuento");
+		        String descripcionP = rs.getString("descripcion");
+		        String item = String.format("Cupón %d - %.2f%% descuento (%s)", idCupon, descuento, descripcionP);
+		        listCupones.getItems().add(item);
+		        hayCupones = true;
+		    }
+		    if (!hayCupones) {
+		        listCupones.getItems().add("No hay cupones activos.");
+		    }
+		}
+	} catch (SQLException e) {
+		// TODO Auto-generated catch block
+        listCupones.getItems().add("Error al cargar cupones: " + e.getMessage());
+
+		e.printStackTrace();
+	}
+}
+}
 
 
