@@ -3,17 +3,23 @@ package clases;
 
 import utilidades.ConexionBD;
 
+
 import java.sql.*;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -480,4 +486,111 @@ public class Cliente {
             error.show();
         }
     }
+    public void comprarProductos(String dni) {
+        Stage stage = new Stage();
+        VBox v = new VBox(10);
+        v.setStyle("-fx-padding: 15;");
+
+        Label titulo = new Label("Selecciona productos:");
+        ListView<String> listaProductos = new ListView<>();
+        Map<String, Integer> productoMap = new HashMap<>();
+        Map<String, Double> precioMap = new HashMap<>();
+
+        try (Connection c = ConexionBD.obtenerConexion();
+             Statement stmt = c.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT id_producto, nombre, precio FROM producto")) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id_producto");
+                String nombre = rs.getString("nombre");
+                double precio = rs.getDouble("precio");
+                String item = nombre + " - $" + precio;
+                listaProductos.getItems().add(item);
+                productoMap.put(item, id);
+                precioMap.put(item, precio);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        ListView<String> cesta = new ListView<>();
+        Label labelCesta = new Label("Cesta de productos:");
+        Button btnAgregar = new Button("Agregar a cesta");
+
+        btnAgregar.setOnAction(e -> {
+            String seleccionado = listaProductos.getSelectionModel().getSelectedItem();
+            if (seleccionado != null) {
+                cesta.getItems().add(seleccionado);
+            }
+        });
+
+        CheckBox usarCupon = new CheckBox("Usar cupón de descuento");
+        Label estado = new Label();
+
+        Button btnConfirmar = new Button("Confirmar compra");
+        btnConfirmar.setOnAction(e -> {
+            List<String> seleccionados = cesta.getItems();
+            if (seleccionados.isEmpty()) {
+                estado.setText("La cesta está vacía.");
+                return;
+            }
+
+            try (Connection c = ConexionBD.obtenerConexion()) {
+                double total = 0.0;
+                for (String item : seleccionados) {
+                    total += precioMap.get(item);
+                }
+
+                double descuento = 0.0;
+
+                if (usarCupon.isSelected()) {
+                    PreparedStatement pstCupon = c.prepareStatement(
+                            "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false LIMIT 1");
+                    pstCupon.setString(1, dni);
+                    ResultSet rsCupon = pstCupon.executeQuery();
+
+                    if (rsCupon.next()) {
+                        descuento = rsCupon.getDouble("descuento") / 100.0;
+                        int idCupon = rsCupon.getInt("id_cupon");
+
+                        PreparedStatement pstUsar = c.prepareStatement(
+                                "UPDATE cupon SET usado = true WHERE id_cupon = ?");
+                        pstUsar.setInt(1, idCupon);
+                        pstUsar.executeUpdate();
+                    } else {
+                        estado.setText("No tienes cupones disponibles.");
+                        return;
+                    }
+                }
+
+                double totalFinal = total * (1 - descuento);
+                estado.setText(String.format("Compra realizada. Total: $%.2f", totalFinal));
+
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                estado.setText("Error en la compra.");
+            }
+        });
+
+        Button btnCerrar = new Button("Cerrar");
+        btnCerrar.setOnAction(e -> stage.close());
+
+        v.getChildren().addAll(
+            titulo,
+            listaProductos,
+            btnAgregar,
+            labelCesta,
+            cesta,
+            usarCupon,
+            btnConfirmar,
+            estado,
+            btnCerrar
+        );
+
+        Scene scene = new Scene(v, 400, 550);
+        stage.setScene(scene);
+        stage.setTitle("Compra de Productos");
+        stage.show();
+    }
+    
 }

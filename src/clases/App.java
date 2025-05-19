@@ -21,6 +21,7 @@ public class App extends Application {
 	 private void mostrarMenuCliente(Cliente c) {
 	    	
 	    	Cliente cliente = new Cliente();
+	    	Button btnComprarProductos = new Button("Comprar productos");
 	    	Button btnVerCatalogo = new Button("Ver Catálogo de Productos");
 	        Button btnBuscarProducto = new Button("Buscar Producto por Nombre");
 	        Button btnUsarCupon = new Button("Usar Cupón de Descuento");
@@ -29,6 +30,9 @@ public class App extends Application {
 	        Button btnConsultarCupones = new Button("Consultar Mis Cupones");
 	        Button btnVolver = new Button("Volver");
 
+	        btnComprarProductos.setOnAction(e ->{
+	        	cliente.comprarProductos(cliente.getDni());
+	        });
 	        btnVerCatalogo.setOnAction(e -> {
 				cliente.verCatalogoProductos();
 			});
@@ -81,6 +85,7 @@ public class App extends Application {
 	        layout.setStyle("-fx-padding: 20;");
 	        layout.getChildren().addAll(
 	            new Label("Menú Cliente:"),
+	            btnComprarProductos,
 	            btnVerCatalogo,
 	            btnBuscarProducto,
 	            btnUsarCupon,
