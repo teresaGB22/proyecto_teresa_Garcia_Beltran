@@ -486,111 +486,164 @@ public class Cliente {
             error.show();
         }
     }
+    /*Comprar productos insertandolo en la cesta y comprar (se puede insertar el cupon )
+    * @param dni El DNI del cliente que está realizando la compra.
+       */
     public void comprarProductos(String dni) {
-        Stage stage = new Stage();
-        VBox v = new VBox(10);
-        v.setStyle("-fx-padding: 15;");
+    	 Stage stage = new Stage();
+    	    VBox v = new VBox(10);
+    	    v.setStyle("-fx-padding: 15;");
 
-        Label titulo = new Label("Selecciona productos:");
-        ListView<String> listaProductos = new ListView<>();
-        Map<String, Integer> productoMap = new HashMap<>();
-        Map<String, Double> precioMap = new HashMap<>();
+    	    Label titulo = new Label("Selecciona productos:");
+    	    ListView<String> listaProductos = new ListView<>();
+    	    Map<String, Integer> productoMap = new HashMap<>();
+    	    Map<String, Double> precioMap = new HashMap<>();
 
-        try (Connection c = ConexionBD.obtenerConexion();
-             Statement stmt = c.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id_producto, nombre, precio FROM producto")) {
+    	    try (Connection c = ConexionBD.obtenerConexion();
+    	         Statement stmt = c.createStatement();
+    	         ResultSet rs = stmt.executeQuery("SELECT id_producto, nombre, precio FROM producto")) {
 
-            while (rs.next()) {
-                int id = rs.getInt("id_producto");
-                String nombre = rs.getString("nombre");
-                double precio = rs.getDouble("precio");
-                String item = nombre + " - $" + precio;
-                listaProductos.getItems().add(item);
-                productoMap.put(item, id);
-                precioMap.put(item, precio);
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
+    	        while (rs.next()) {
+    	            int id = rs.getInt("id_producto");
+    	            String nombre = rs.getString("nombre");
+    	            double precio = rs.getDouble("precio");
+    	            String item = nombre + " " + precio + " - €";
+    	            listaProductos.getItems().add(item);
+    	            productoMap.put(item, id);
+    	            precioMap.put(item, precio);
+    	        }
+    	    } catch (SQLException ex) {
+    	        ex.printStackTrace();
+    	    }
 
-        ListView<String> cesta = new ListView<>();
-        Label labelCesta = new Label("Cesta de productos:");
-        Button btnAgregar = new Button("Agregar a cesta");
+    	    ListView<String> cesta = new ListView<>();
+    	    Label labelCesta = new Label("Cesta de productos:");
+    	    Button btnAgregar = new Button("Agregar a cesta");
 
-        btnAgregar.setOnAction(e -> {
-            String seleccionado = listaProductos.getSelectionModel().getSelectedItem();
-            if (seleccionado != null) {
-                cesta.getItems().add(seleccionado);
-            }
-        });
+    	    btnAgregar.setOnAction(e -> {
+    	        String seleccionado = listaProductos.getSelectionModel().getSelectedItem();
+    	        if (seleccionado != null) {
+    	            cesta.getItems().add(seleccionado);
+    	        }
+    	    });
 
-        CheckBox usarCupon = new CheckBox("Usar cupón de descuento");
-        Label estado = new Label();
+    	    CheckBox usarCupon = new CheckBox("Usar cupón de descuento");
+    	    Label estado = new Label();
 
-        Button btnConfirmar = new Button("Confirmar compra");
-        btnConfirmar.setOnAction(e -> {
-            List<String> seleccionados = cesta.getItems();
-            if (seleccionados.isEmpty()) {
-                estado.setText("La cesta está vacía.");
-                return;
-            }
+    	    Button btnConfirmar = new Button("Confirmar compra");
+    	    btnConfirmar.setOnAction(e -> {
+    	        List<String> seleccionados = cesta.getItems();
+    	        if (seleccionados.isEmpty()) {
+    	            estado.setText("La cesta está vacía.");
+    	            return;
+    	        }
 
-            try (Connection c = ConexionBD.obtenerConexion()) {
-                double total = 0.0;
-                for (String item : seleccionados) {
-                    total += precioMap.get(item);
-                }
+    	        try (Connection c = ConexionBD.obtenerConexion()) {
+    	            double total = 0.0;
+    	            for (String item : seleccionados) {
+    	                total += precioMap.get(item);
+    	            }
 
-                double descuento = 0.0;
+    	            double descuento = 0.0;
+    	            int cuponId = -1;
 
-                if (usarCupon.isSelected()) {
-                    PreparedStatement pstCupon = c.prepareStatement(
-                            "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false LIMIT 1");
-                    pstCupon.setString(1, dni);
-                    ResultSet rsCupon = pstCupon.executeQuery();
+    	            if (usarCupon.isSelected()) {
+    	                PreparedStatement pstCupon = c.prepareStatement(
+    	                        "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false LIMIT 1");
+    	                pstCupon.setString(1, dni);
+    	                ResultSet rsCupon = pstCupon.executeQuery();
 
-                    if (rsCupon.next()) {
-                        descuento = rsCupon.getDouble("descuento") / 100.0;
-                        int idCupon = rsCupon.getInt("id_cupon");
+    	                if (rsCupon.next()) {
+    	                    descuento = rsCupon.getDouble("descuento") / 100.0;
+    	                    cuponId = rsCupon.getInt("id_cupon");
+    	                } else {
+    	                    estado.setText("No tienes cupones disponibles.");
+    	                    return;
+    	                }
+    	            }
 
-                        PreparedStatement pstUsar = c.prepareStatement(
-                                "UPDATE cupon SET usado = true WHERE id_cupon = ?");
-                        pstUsar.setInt(1, idCupon);
-                        pstUsar.executeUpdate();
-                    } else {
-                        estado.setText("No tienes cupones disponibles.");
-                        return;
-                    }
-                }
+    	            double totalFinal = total * (1 - descuento);
 
-                double totalFinal = total * (1 - descuento);
-                estado.setText(String.format("Compra realizada. Total: $%.2f", totalFinal));
+    	            // Insertar en tabla venta
+    	            PreparedStatement pstVenta = c.prepareStatement(
+    	                    "INSERT INTO venta (fecha_venta, total, metodo_pago, metodo_envio, coste_envio, cliente_dni) " +
+    	                    "VALUES (CURDATE(), ?, 'TARJETA', '3 A 5 DIAS', 0.00, ?)", Statement.RETURN_GENERATED_KEYS);
+    	            pstVenta.setDouble(1, totalFinal);
+    	            pstVenta.setString(2, dni);
+    	            int filasVenta = pstVenta.executeUpdate();
 
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                estado.setText("Error en la compra.");
-            }
-        });
+    	            if (filasVenta == 0) {
+    	                estado.setText("Error al registrar la venta.");
+    	                return;
+    	            }
 
-        Button btnCerrar = new Button("Cerrar");
-        btnCerrar.setOnAction(e -> stage.close());
+    	            ResultSet rsVenta = pstVenta.getGeneratedKeys();
+    	            int idVenta = -1;
+    	            if (rsVenta.next()) {
+    	                idVenta = rsVenta.getInt(1);
+    	            } else {
+    	                estado.setText("Error al obtener el ID de la venta.");
+    	                return;
+    	            }
 
-        v.getChildren().addAll(
-            titulo,
-            listaProductos,
-            btnAgregar,
-            labelCesta,
-            cesta,
-            usarCupon,
-            btnConfirmar,
-            estado,
-            btnCerrar
-        );
+    	            // Agrupar productos por id y contar cantidades para evitar duplicados
+    	            Map<Integer, Integer> cantidades = new HashMap<>();
+    	            for (String item : seleccionados) {
+    	                int idProducto = productoMap.get(item);
+    	                cantidades.put(idProducto, cantidades.getOrDefault(idProducto, 0) + 1);
+    	            }
 
-        Scene scene = new Scene(v, 400, 550);
-        stage.setScene(scene);
-        stage.setTitle("Compra de Productos");
-        stage.show();
+    	            // Insertar productos en producto_en_venta
+    	            for (Map.Entry<Integer, Integer> entry : cantidades.entrySet()) {
+    	                int idProducto = entry.getKey();
+    	                int cantidad = entry.getValue();
+
+    	                PreparedStatement pstProdVenta = c.prepareStatement(
+    	                        "INSERT INTO producto_en_venta (venta_id, producto_id, cantidad) VALUES (?, ?, ?)");
+    	                pstProdVenta.setInt(1, idVenta);
+    	                pstProdVenta.setInt(2, idProducto);
+    	                pstProdVenta.setInt(3, cantidad);
+    	                pstProdVenta.executeUpdate();
+    	            }
+
+    	            // Actualizar cupón si se usó
+    	            if (cuponId != -1) {
+    	                PreparedStatement pstUpdateCupon = c.prepareStatement(
+    	                        "UPDATE cupon SET usado = true, fecha_uso = CURDATE(), venta_id = ? WHERE id_cupon = ?");
+    	                pstUpdateCupon.setInt(1, idVenta);
+    	                pstUpdateCupon.setInt(2, cuponId);
+    	                pstUpdateCupon.executeUpdate();
+    	            }
+
+    	            estado.setText(String.format("Compra realizada con éxito. Venta #%d - Total: %.2f €", idVenta, totalFinal));
+
+    	        } catch (SQLException ex) {
+    	            ex.printStackTrace();
+    	            estado.setText("Error al registrar la venta.");
+    	        }
+    	    });
+
+    	    Button btnCerrar = new Button("Cerrar");
+    	    btnCerrar.setOnAction(e -> stage.close());
+
+    	    v.getChildren().addAll(
+    	        titulo,
+    	        listaProductos,
+    	        btnAgregar,
+    	        labelCesta,
+    	        cesta,
+    	        usarCupon,
+    	        btnConfirmar,
+    	        estado,
+    	        btnCerrar
+    	    );
+
+    	    Scene scene = new Scene(v, 400, 550);
+    	    stage.setScene(scene);
+    	    stage.setTitle("Compra de Productos");
+    	    stage.show();
     }
+   
+    
     
 }

@@ -20,7 +20,7 @@ import utilidades.ConexionBD;
 public class App extends Application {
 	 private void mostrarMenuCliente(Cliente c) {
 	    	
-	    	Cliente cliente = new Cliente();
+	    	
 	    	Button btnComprarProductos = new Button("Comprar productos");
 	    	Button btnVerCatalogo = new Button("Ver Catálogo de Productos");
 	        Button btnBuscarProducto = new Button("Buscar Producto por Nombre");
@@ -31,14 +31,14 @@ public class App extends Application {
 	        Button btnVolver = new Button("Volver");
 
 	        btnComprarProductos.setOnAction(e ->{
-	        	cliente.comprarProductos(cliente.getDni());
+	        	c.comprarProductos(c.getDni());
 	        });
 	        btnVerCatalogo.setOnAction(e -> {
-				cliente.verCatalogoProductos();
+				c.verCatalogoProductos();
 			});
 	        btnBuscarProducto.setOnAction(e -> {
 				try {
-					cliente.buscarProductoPorNombre();
+					c.buscarProductoPorNombre();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -46,7 +46,7 @@ public class App extends Application {
 			});
 	        btnUsarCupon.setOnAction(e -> {
 				try {
-					cliente.usarCuponDescuento(c.getDni());
+					c.usarCuponDescuento(c.getDni());
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -54,7 +54,7 @@ public class App extends Application {
 			});
 	        btnVerFacturas.setOnAction(e -> {
 				try {
-					cliente.verFacturas(c.getDni());
+					c.verFacturas(c.getDni());
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -62,7 +62,7 @@ public class App extends Application {
 			});
 	        btnParticiparSorteo.setOnAction(e -> {
 				try {
-					cliente.participarEnSorteo(c.getDni());
+					c.participarEnSorteo(c.getDni());
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -70,7 +70,7 @@ public class App extends Application {
 			});
 	        btnConsultarCupones.setOnAction(e -> {
 				try {
-					cliente.consultarCuponesDisponibles();
+					c.consultarCuponesDisponibles();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
