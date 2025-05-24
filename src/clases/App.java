@@ -534,6 +534,7 @@ stage.show();
 
         stage.setTitle("Menú Principal");
         stage.setScene(scene);
+     
         stage.show();
     }
 

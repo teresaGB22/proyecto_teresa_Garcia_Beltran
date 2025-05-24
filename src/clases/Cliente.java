@@ -185,6 +185,7 @@ Label estado = new Label();
         Stage ventana = new Stage();
         ventana.setTitle("Registrar Cliente");
         ventana.setScene(new Scene(layout, 300, 200));
+       
         ventana.show();
     }
     /**
