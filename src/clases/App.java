@@ -18,13 +18,17 @@ import javafx.stage.Stage;
 import utilidades.ConexionBD;
 
 public class App extends Application {
+	/**
+	 * Muestra el menú principal para un cliente con varias opciones disponibles.
+	 * @param c El objeto Cliente que representa al cliente actual.
+	 */
 	 private void mostrarMenuCliente(Cliente c) {
 	    	
 	    	
 	    	Button btnComprarProductos = new Button("Comprar productos");
 	    	Button btnVerCatalogo = new Button("Ver Catálogo de Productos");
 	        Button btnBuscarProducto = new Button("Buscar Producto por Nombre");
-	        Button btnUsarCupon = new Button("Usar Cupón de Descuento");
+	       
 	        Button btnVerFacturas = new Button("Ver Mis Facturas");
 	        Button btnParticiparSorteo = new Button("Participar en Sorteo");
 	        Button btnConsultarCupones = new Button("Consultar Mis Cupones");
@@ -44,14 +48,7 @@ public class App extends Application {
 					e1.printStackTrace();
 				}
 			});
-	        btnUsarCupon.setOnAction(e -> {
-				try {
-					c.usarCuponDescuento(c.getDni());
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			});
+	        
 	        btnVerFacturas.setOnAction(e -> {
 				try {
 					c.verFacturas(c.getDni());
@@ -62,19 +59,14 @@ public class App extends Application {
 			});
 	        btnParticiparSorteo.setOnAction(e -> {
 				try {
-					c.participarEnSorteo(c.getDni());
+					c.participarEnSorteo();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			});
 	        btnConsultarCupones.setOnAction(e -> {
-				try {
-					c.consultarCuponesDisponibles();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				c.mostrarCuponesDisponibles();
 			});
 	        btnVolver.setOnAction(e -> {
 	            
@@ -88,7 +80,7 @@ public class App extends Application {
 	            btnComprarProductos,
 	            btnVerCatalogo,
 	            btnBuscarProducto,
-	            btnUsarCupon,
+	           
 	            btnVerFacturas,
 	            btnParticiparSorteo,
 	            btnConsultarCupones,
@@ -100,7 +92,13 @@ public class App extends Application {
 	        stage.setScene(scene);
 	        stage.show();
 	    }
-	private boolean clienteExiste(String dni) {
+	
+	 /**
+	  * Comprueba si un cliente existe en la base de datos mediante su DNI.
+	  * @param dni El DNI del cliente a verificar.
+	  * @return true si el cliente existe, false en caso contrario o si ocurre un error.
+	  */
+	 private boolean clienteExiste(String dni) {
 	    String q = "SELECT COUNT(*) FROM cliente WHERE dni = ?";
 	    try (Connection c = ConexionBD.obtenerConexion();
 	         PreparedStatement pst = c.prepareStatement(q)) {
@@ -112,19 +110,11 @@ public class App extends Application {
 	        return false;
 	    }
 	}
-	private void registrarNuevoCliente(String dni, String nombre, String apellidos, String email) {
-	    String q = "INSERT INTO cliente (dni, nombre, apellidos, email) VALUES (?, ?, ?, ?)";
-	    try (Connection c = ConexionBD.obtenerConexion();
-	         PreparedStatement pst = c.prepareStatement(q)) {
-	        pst.setString(1, dni);
-	        pst.setString(2, nombre);
-	        pst.setString(3, apellidos);
-	        pst.setString(4, email);
-	        pst.executeUpdate();
-	    } catch (SQLException ex) {
-	        ex.printStackTrace();
-	    }
-	}
+	 /**
+	  * Muestra la ventana de inicio de sesión para un cliente, permitiendo ingresar o registrarse.
+	  * Al ingresar, si el DNI existe, se muestra el menú de cliente.
+	  * Al registrarse, se crea un nuevo cliente en la base de datos.
+	  */
 	private void mostrarVentanaLoginCliente() {
 	    Stage ventana = new Stage();
 	    ventana.setTitle("Inicio de Sesión - Cliente");
@@ -196,12 +186,13 @@ public class App extends Application {
 	        	if (clienteExiste(dni)) {
 		            lblEstado.setText("Ese DNI ya está registrado.");
 		        } else {
-		            registrarNuevoCliente(dni, nombre, Apellidos, email);
+		        	Cliente c = new Cliente();
+		            c.registrarNuevoCliente(dni, nombre, Apellidos, email);
 		            lblEstado.setText("Cliente registrado. Ya puedes ingresar.");
-		            Cliente cliente = new Cliente();
-		            cliente.setDni(dni);
+		            
+		            c.setDni(dni);
 		            ventana.close();
-		            mostrarMenuCliente(cliente);
+		            mostrarMenuCliente(c);
 		        }
 	        }
 
@@ -209,15 +200,46 @@ public class App extends Application {
 	    });
 	}
    
+	/**
+	 * Muestra el menú principal para un empleado con opciones específicas para la gestión.
+	 * @param empleado El objeto Empleado que representa al empleado actual.
+	 */
+    private void mostrarMenuEmpleado(Empleado empleado) {
+    	Button btnGestionClientes = new Button("Gestionar Clientes");
+    	Button btnGestionPedidosVentas = new Button("Gestion de pedidos o ventas");
+    	Button btnPerfil = new Button("Actualizar el Perfil");
+    	Button btnVolver = new Button("Volver");
+    	
+    	btnGestionClientes.setOnAction(e ->{
+    		try {
+				empleado.gestionarClientes();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+    	});
+    	btnGestionPedidosVentas.setOnAction(e ->{
+    		empleado.mostrarPedidos();    	});
+btnVolver.setOnAction(e -> {
+            
+            ((Stage) btnVolver.getScene().getWindow()).close();
 
-    private void mostrarMenuEmpleado() {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle("Menú Empleado");
-        alert.setHeaderText("Opciones para Empleado");
-        alert.setContentText("1. Registrar nueva venta\n2. Buscar productos disponibles\n3. Ver historial de ventas registradas");
-        alert.showAndWait();
+        });
+
+VBox layout = new VBox(10);
+layout.setStyle("-fx-padding: 20;");
+layout.getChildren().addAll(btnGestionClientes,btnGestionPedidosVentas, btnVolver);
+Scene scene = new Scene(layout, 350, 400);
+Stage stage = new Stage();
+stage.setTitle("Menú empleado");
+stage.setScene(scene);
+stage.show();
+    	
     }
-
+    /**
+     * Muestra el menú principal para un proveedor con opciones específicas para gestión de productos, pedidos y más.
+     * @param p El objeto Proveedor que representa al proveedor actual.
+     */
     private void mostrarMenuProveedor(Proveedor p) {
         
         Button btnproductos = new Button("Gestionar Productos");
@@ -225,6 +247,7 @@ public class App extends Application {
         Button btnVentas = new Button("Gestion de ventas");
         Button btnPerfil = new Button("Actualizar el perfil");
         Button btnCupones = new Button("Promociones y cupones");
+        Button btnSorteo = new Button("Crear sorteo");
         Button btnVolver = new Button("Volver");
         btnproductos.setOnAction(e ->{
         	p.gestionarProductos();
@@ -244,6 +267,9 @@ public class App extends Application {
         btnCupones.setOnAction(e ->{
         	p.gestionPromocionesCupones();
         });
+        btnSorteo.setOnAction(e ->{
+        	p.CrearSorteo();
+        });
         btnVolver.setOnAction(e -> {
             
             ((Stage) btnVolver.getScene().getWindow()).close();
@@ -258,6 +284,7 @@ public class App extends Application {
             btnVentas,
             btnPerfil,
             btnCupones,
+            btnSorteo,
             btnVolver
         );
         Scene scene = new Scene(layout, 350, 400);
@@ -266,6 +293,11 @@ public class App extends Application {
         stage.setScene(scene);
         stage.show();
     }
+    /**
+     * Comprueba si un proveedor existe en la base de datos mediante su DNI.
+     * @param dni El DNI del proveedor a verificar.
+     * @return true si el proveedor existe, false en caso contrario o si ocurre un error.
+     */
     private boolean proveedorExiste(String dni) {
         String q = "SELECT COUNT(*) FROM proveedor WHERE dni = ?";
         try (Connection c = ConexionBD.obtenerConexion();
@@ -280,6 +312,116 @@ public class App extends Application {
         }
         return false;
     }
+    /**
+     * Comprueba si un empleado existe en la base de datos mediante su usuario.
+     * @param user El nombre de usuario del empleado a verificar.
+     * @return true si el empleado existe, false en caso contrario o si ocurre un error.
+     */
+    private boolean empleadoExiste(String user) {
+        String q = "SELECT COUNT(*) FROM empleado WHERE usuario = ?";
+        try (Connection c = ConexionBD.obtenerConexion();
+             PreparedStatement pst = c.prepareStatement(q)) {
+            pst.setString(1, user);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+/**
+ * Muestra la ventana de inicio de sesión para un empleado, permitiendo ingresar o registrarse.
+ * Al ingresar, si el usuario existe, se muestra el menú de empleado.
+ * Al registrarse, se crea un nuevo empleado en la base de datos.
+ */
+    private void mostrarLoginEmpleado() {
+    	Stage ventana = new Stage();
+	    ventana.setTitle("Inicio de Sesión - Empleado");
+
+	    VBox layout = new VBox(10);
+	    layout.setStyle("-fx-padding: 14;");
+
+	    
+	    Label lblUsuario = new Label("Introduce tu usuario");
+	    TextField txtUsuario = new TextField();
+	    Label lblContrasenya = new Label("Introduce tu contraseña");
+	    TextField txtContrasenya = new TextField();
+	    Label lblEstado = new Label();
+
+	    Button btnIngresar = new Button("Ingresar");
+	    Button btnRegistrar = new Button("Registrar");
+
+	    layout.getChildren().addAll( lblUsuario,txtUsuario,lblContrasenya,txtContrasenya, btnIngresar, btnRegistrar, lblEstado);
+	    Scene escena = new Scene(layout, 300, 600);
+	    ventana.setScene(escena);
+	    ventana.show();
+
+	    btnIngresar.setOnAction(e -> {
+	        String user = txtUsuario.getText().trim();
+	        String contrasenya = txtContrasenya.getText().trim();
+	        if (user.isEmpty() || contrasenya.isEmpty()) {
+	            lblEstado.setText("Por favor, introduce su usuario y contrasenya");
+	            return;
+	        }
+
+	        String q = "SELECT * FROM empleado WHERE usuario = ?";
+	        try (Connection c = ConexionBD.obtenerConexion();
+	             PreparedStatement pst = c.prepareStatement(q)) {
+	            pst.setString(1, user);
+
+	            ResultSet rs = pst.executeQuery();
+	            if (rs.next()) {
+	                Empleado empleado = new Empleado();
+	                empleado.setIdEmpleado(rs.getInt("id_empleado"));  
+	                empleado.setContraseña(rs.getString("contrasenya"));
+	                empleado.setUsuario(rs.getString("usuario"));
+	                
+
+	                lblEstado.setText("Bienvenido, " + empleado.getUsuario());
+	                ventana.close();
+	                mostrarMenuEmpleado(empleado); 
+	            } else {
+	                lblEstado.setText("Usuario no registrado. Pulsa para registrarse");
+	            }
+	        } catch (SQLException ex) {
+	            ex.printStackTrace();
+	            lblEstado.setText("Error al verificar el empleado");
+	        }
+	    });
+
+	    btnRegistrar.setOnAction(e -> {
+	        String user = txtUsuario.getText().trim();
+	        String contrasenya = txtContrasenya.getText().trim();
+
+	        if (user.isEmpty() || contrasenya.isEmpty() ) {
+	            lblEstado.setText("Por favor, introduzca todos los datos");
+	        } else {
+	            if (empleadoExiste(user)) {  
+	                lblEstado.setText("Ese DNI ya está registrado.");
+	            } else {
+	                Empleado empleado = new Empleado();
+	                int id = empleado.registrarNuevoEmpleado(user,contrasenya);
+	                if (id != -1) {
+	                    empleado.setIdEmpleado(id);  
+	                    lblEstado.setText("Empleado registrado. Ya puedes ingresar.");
+
+	                    ventana.close();
+	                    mostrarMenuEmpleado(empleado);
+	                } else {
+	                    lblEstado.setText("Error al registrar empleado.");
+	                }
+	            }
+	        }
+	    });
+    }
+    /**
+     * Muestra la ventana de inicio de sesión para un proveedor, permitiendo ingresar o registrarse.
+     * Al ingresar, si el DNI existe, se muestra el menú de proveedor.
+     * Al registrarse, se crea un nuevo proveedor en la base de datos.
+     */
     private void mostrarLoginProveedor() {
     	 Stage ventana = new Stage();
     	    ventana.setTitle("Inicio de Sesión - Proveedor");
@@ -361,7 +503,12 @@ public class App extends Application {
     	        }
     	    });
 	    }
-
+    /**
+     * Método principal que se ejecuta al iniciar la aplicación JavaFX.
+     * Muestra la ventana principal con opciones para acceder como Cliente, Empleado, Proveedor o salir.
+     *
+     * @param stage La ventana principal (Stage) de la aplicación.
+     */
     @Override
     public void start(Stage stage) {
         
@@ -375,7 +522,7 @@ public class App extends Application {
 
         btnCliente.setOnAction(e -> mostrarVentanaLoginCliente());
 
-        btnEmpleado.setOnAction(e -> mostrarMenuEmpleado());
+        btnEmpleado.setOnAction(e -> mostrarLoginEmpleado());
 
         btnAdministrador.setOnAction(e -> mostrarLoginProveedor());
 

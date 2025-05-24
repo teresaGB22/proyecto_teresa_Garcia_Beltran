@@ -8,109 +8,173 @@ import java.time.LocalDate;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 import utilidades.ConexionBD;
 
+
 public class Producto {
-	private int idProducto;
-	private String nombre;
-	private LocalDate fechaEntrada;
-	private int stock;
-	private boolean esOnline;
-private double precio;
-	private Proveedor proveedor;
-	
+    private int idProducto;
+    private String nombre;
+    private LocalDate fechaEntrada;
+    private int stock;
+    private boolean esOnline;
+    private double precio;
+    private Proveedor proveedor;
 
-	public Producto(int i, String string, int j, double d, boolean b, int id, LocalDate localDate) {
-		this.idProducto = i;
-		this.nombre = string;
-		this.stock = j;
-		this.precio = d;
-		this.esOnline = b;
-		
-		this.fechaEntrada = localDate;
+ 
+    public Producto(int i, String string, int j, double d, boolean b, int id, LocalDate localDate) {
+        this.idProducto = i;
+        this.nombre = string;
+        this.stock = j;
+        this.precio = d;
+        this.esOnline = b;
+        this.fechaEntrada = localDate;
+    }
+
+    
+    public Producto(int idProducto, String nombreProducto, LocalDate fechaEntrada, int stock, double precio, boolean esOnline,
+            Proveedor proveedor) {
+        this.idProducto = idProducto;
+        this.nombre = nombreProducto;
+        this.fechaEntrada = fechaEntrada;
+        this.stock = stock;
+        this.esOnline = esOnline;
+        this.proveedor = proveedor;
+        this.precio = precio;
+    }
+
+
+    public Producto(int idProducto, String nombreProducto, LocalDate fechaEntrada, int stock, boolean esOnline,
+            double precio, Proveedor proveedor) {
+        this.idProducto = idProducto;
+        this.nombre = nombreProducto;
+        this.fechaEntrada = fechaEntrada;
+        this.stock = stock;
+        this.esOnline = esOnline;
+        this.proveedor = proveedor;
+        this.precio = precio;
+    }
+
+    public Producto(int int1, String string, double double1, int stock) {
+        this.idProducto = int1;
+        this.nombre = string;
+        this.precio = double1;
+        this.stock = stock;
+    }
+
+
+    public Producto() {
+		// TODO Auto-generated constructor stub
 	}
 
-	public Producto(int idProducto, String nombreProducto, LocalDate fechaEntrada, int stock,double precio, boolean esOnline,
-			Proveedor proveedor) {
-		this.idProducto = idProducto;
-		this.nombre = nombreProducto;
-		this.fechaEntrada = fechaEntrada;
-		this.stock = stock;
-		this.esOnline = esOnline;
-		this.proveedor = proveedor;
-		this.precio = precio;
-	}
 
 	public double getPrecio() {
-		return precio;
-	}
+        return precio;
+    }
 
-	public void setPrecio(double precio) {
-		this.precio = precio;
-	}
 
-	public int getIdProducto() {
-		return idProducto;
-	}
+    public void setPrecio(double precio) {
+        this.precio = precio;
+    }
 
-	public void setIdProducto(int idProducto) {
-		this.idProducto = idProducto;
-	}
 
-	public String getNombre() {
-		return nombre;
-	}
+    public int getIdProducto() {
+        return idProducto;
+    }
 
-	public void setNombre(String nombreProducto) {
-		this.nombre = nombreProducto;
-	}
 
-	public LocalDate getFechaEntrada() {
-		return fechaEntrada;
-	}
+    public void setIdProducto(int idProducto) {
+        this.idProducto = idProducto;
+    }
 
-	public void setFechaEntrada(LocalDate fechaEntrada) {
-		this.fechaEntrada = fechaEntrada;
-	}
+    public String getNombre() {
+        return nombre;
+    }
 
-	public int getStock() {
-		return stock;
-	}
+ 
+    public void setNombre(String nombreProducto) {
+        this.nombre = nombreProducto;
+    }
 
-	public void setStock(int stock) {
-		this.stock = stock;
-	}
+  
+    public LocalDate getFechaEntrada() {
+        return fechaEntrada;
+    }
 
-	public boolean isEsOnline() {
-		return esOnline;
-	}
+    public void setFechaEntrada(LocalDate fechaEntrada) {
+        this.fechaEntrada = fechaEntrada;
+    }
 
-	public void setEsOnline(boolean esOnline) {
-		this.esOnline = esOnline;
-	}
+    
+    public int getStock() {
+        return stock;
+    }
 
-	public Proveedor getProveedor() {
-		return proveedor;
-	}
+   
+    public void setStock(int stock) {
+        this.stock = stock;
+    }
 
-	public void setProveedor(Proveedor proveedor) {
-		this.proveedor = proveedor;
-	}
+   
+    public boolean isEsOnline() {
+        return esOnline;
+    }
 
-	
+ 
+    public void setEsOnline(boolean esOnline) {
+        this.esOnline = esOnline;
+    }
 
-	
-	
-	
+ 
+    public Proveedor getProveedor() {
+        return proveedor;
+    }
+
+   
+    public void setProveedor(Proveedor proveedor) {
+        this.proveedor = proveedor;
+    }
+
+    /**
+     * Carga todos los productos disponibles desde la base de datos y los devuelve
+     * como una lista  para su uso en interfaces JavaFX.
+     * 
+     * @return ObservableList con todos los productos.
+     */
+    public static ObservableList<Producto> cargarProductosDisponibles() {
+        ObservableList<Producto> listaProductos = FXCollections.observableArrayList();
+
+        String sql = "SELECT * FROM producto";
+
+        try (Connection con = ConexionBD.obtenerConexion();
+                PreparedStatement pst = con.prepareStatement(sql);
+                ResultSet rs = pst.executeQuery()) {
+
+            while (rs.next()) {
+                int idProducto = rs.getInt("id_producto");
+                String nombre = rs.getString("nombre");
+                int stock = rs.getInt("stock");
+                double precio = rs.getDouble("precio");
+                boolean esOnline = rs.getBoolean("es_online");
+                LocalDate fechaEntrada = rs.getDate("fecha_entrada").toLocalDate();
+                int idProveedor = rs.getInt("proveedor_id");
+
+                Proveedor proveedor = new Proveedor(idProveedor);
+
+                Producto producto = new Producto(idProducto, nombre, fechaEntrada, stock, esOnline, precio, proveedor);
+
+                listaProductos.add(producto);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return listaProductos;
+    }
+
+ 
+    @Override
+    public String toString() {
+        return nombre;
+    }
 }

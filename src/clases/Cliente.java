@@ -3,8 +3,10 @@ package clases;
 
 import utilidades.ConexionBD;
 
-
+import java.io.IOException;
 import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +14,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -20,9 +26,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 /**
  * Clase que representa un cliente del sistema.
@@ -55,7 +66,12 @@ public class Cliente {
     public Cliente() {
     }
     
-    public String getDni() {
+    public Cliente(String dni) {
+    	this.dni = dni;
+		// TODO Auto-generated constructor stub
+	}
+
+	public String getDni() {
         return dni;
     }
    
@@ -86,6 +102,116 @@ public class Cliente {
     public void setEmail(String email) {
         this.email = email;
     }
+/**
+ * se registra un nuevo cliente en la base de datos
+ * @param dni del cliente String
+ * @param nombre del cliente String
+ * @param apellidos del cliente String
+ * @param email del cliente String*/
+    public void registrarNuevoCliente(String dni, String nombre, String apellidos, String email) {
+	    String q = "INSERT INTO cliente (dni, nombre, apellidos, email) VALUES (?, ?, ?, ?)";
+	    try (Connection c = ConexionBD.obtenerConexion();
+	         PreparedStatement pst = c.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)) {
+	        pst.setString(1, dni);
+	        pst.setString(2, nombre);
+	        pst.setString(3, apellidos);
+	        pst.setString(4, email);
+	        pst.executeUpdate();
+	        ResultSet rs = pst.getGeneratedKeys();
+			if (rs.next()) {
+				
+				this.dni = dni;
+				this.nombre = nombre;
+				this.apellidos = apellidos;
+
+			}
+	    } catch (SQLException ex) {
+	        ex.printStackTrace();
+	    }
+	}
+    /**
+     * Muestra una ventana para registrar un nuevo cliente con campos para DNI, nombre,
+     * apellidos y correo electrónico. Incluye un botón para guardar el cliente.
+     * Al guardar correctamente, actualiza la lista y la tabla de clientes mostrada.
+     *
+     * @param lista ObservableList de clientes que se actualizará con el nuevo cliente registrado.
+     * @param tabla TableView que mostrará la lista actualizada de clientes.
+     */
+    public static void mostrarRegistrarCliente(ObservableList<Cliente> lista, TableView<Cliente> tabla) {
+    	
+	    TextField txtDni = new TextField();
+	   
+	    TextField txtNombre = new TextField();
+	    
+	    TextField txtApellidos = new TextField();
+	  
+	    TextField txtEmail = new TextField();
+	    txtDni.setPromptText("DNI...");
+	    txtNombre.setPromptText("Nombre...");
+	    txtApellidos.setPromptText("Apellidos...");
+	    txtEmail.setPromptText("correo...");
+Label estado = new Label();
+        Button btnGuardar = new Button("Guardar");
+
+        btnGuardar.setOnAction(e -> {
+        	String dni = txtDni.getText().trim();
+	        String nombre = txtNombre.getText().trim();
+	        String Apellidos = txtApellidos.getText().trim();
+	        String email = txtEmail.getText();
+	        
+            if (dni.isEmpty() || nombre.isEmpty() || Apellidos.isEmpty() || email.isEmpty()) {
+                
+                estado.setText("Completa todos los campos");
+
+                
+            } else {
+            	Cliente nuevo = new Cliente();
+                
+                nuevo.registrarNuevoCliente(dni, nombre, Apellidos, email);
+                try {
+                	 List<Cliente> listaActualizada = Cliente.obtenerClientesRegistrados();
+                	 lista.setAll(listaActualizada);
+                	 tabla.refresh();
+                }catch(SQLException e1) {
+                	e1.printStackTrace();
+                }
+                
+                ((Stage) btnGuardar.getScene().getWindow()).close();
+            }
+        });
+
+        VBox layout = new VBox(10, new Label("Registrar nuevo cliente"), txtDni, txtNombre,txtApellidos,txtEmail, btnGuardar);
+        layout.setPadding(new Insets(15));
+        Stage ventana = new Stage();
+        ventana.setTitle("Registrar Cliente");
+        ventana.setScene(new Scene(layout, 300, 200));
+        ventana.show();
+    }
+    /**
+     * Obtiene la lista de clientes ya registrados en la base de datos.
+     *
+     * @return Lista con todos los clientes registrados.
+     * @throws SQLException Si ocurre un error al realizar la consulta a la base de datos.
+     */
+    public static List<Cliente> obtenerClientesRegistrados() throws SQLException {
+	    List<Cliente> historial = new ArrayList<>();
+	    String sql = "select * from cliente";
+	    try (Connection c = ConexionBD.obtenerConexion();
+	         PreparedStatement pst = c.prepareStatement(sql)) {
+	        
+	        ResultSet rs = pst.executeQuery();
+
+	        while (rs.next()) {
+	           String dni = rs.getString("dni");
+	           String nombre = rs.getString("nombre");
+	           String apellidos = rs.getString("apellidos");
+	           String email = rs.getString("email");
+	           historial.add(new Cliente(dni, nombre, apellidos, email));
+	        }
+	    }
+
+	    return historial;
+	}
     /**
      * Muestra una ventana con el catálogo de productos disponibles para la venta,
      * mostrando nombre, precio y stock.
@@ -93,9 +219,7 @@ public class Cliente {
     public void verCatalogoProductos() {
         ListView<String> listaProductos = new ListView<>();
 
-        String q = "select pev.cantidad, p.id_producto, p.nombre, p.precio " +
-                   "from producto_en_venta pev " +
-                   "join producto p on pev.producto_id = p.id_producto";
+        String q = "select cantidad, id_producto, nombre, precio from vista_productos_en_venta";
 
         try (Connection c = ConexionBD.obtenerConexion();
              Statement st = c.createStatement();
@@ -157,9 +281,7 @@ public class Cliente {
                 return;
             }
 
-            String q = "select p.id_producto, p.nombre, p.precio, sum(pev.cantidad) as total_cantidad " +
-                       "from producto p join producto_en_venta pev on p.id_producto = pev.producto_id " +
-                       "where p.nombre LIKE ? group by p.id_producto, p.nombre, p.precio";
+            String q = "select id_producto, nombre, precio, total_cantidad from vista_productos_cantidad where nombre like ?";
 
             try (Connection c = ConexionBD.obtenerConexion();
                  PreparedStatement pst = c.prepareStatement(q)) {
@@ -198,92 +320,7 @@ public class Cliente {
         ventana.setScene(escena);
         ventana.show();
     }
-    /**
-     * Permite al cliente aplicar un cupón de descuento a una compra,
-     * verificando su validez y actualizando el estado del cupón.
-     * 
-     * @param dniCliente DNI del cliente que usa el cupón.
-     * @throws SQLException en caso de error en la base de datos.
-     */
-    public void usarCuponDescuento(String dniCliente) throws SQLException {
-    	Stage ventana = new Stage();
-        ventana.setTitle("Usar Cupón de Descuento");
-
-        VBox layout = new VBox(10);
-        layout.setStyle("-fx-padding: 15;");
-
-        Label lblCodigo = new Label("Código del cupón:");
-        TextField inputCodigo = new TextField();
-
-        Label lblMonto = new Label("Monto total de la compra:");
-        TextField inputMonto = new TextField();
-
-        Button btnAplicar = new Button("Aplicar Descuento");
-        TextArea resultado = new TextArea();
-        resultado.setEditable(false);
-
-        btnAplicar.setOnAction(e -> {
-            String codigoStr = inputCodigo.getText().trim();
-            String montoStr = inputMonto.getText().trim();
-
-            if (codigoStr.isEmpty() || montoStr.isEmpty()) {
-                resultado.setText("Debes introducir el código del cupón y el monto de la compra.");
-                return;
-            }
-
-            try {
-                int idCupon = Integer.parseInt(codigoStr);
-                double montoCompra = Double.parseDouble(montoStr);
-
-                String q = "select descuento from cupon where id_cupon = ? and cliente_dni = ? and usado = false";
-
-                try (Connection c = ConexionBD.obtenerConexion();
-                     PreparedStatement pst = c.prepareStatement(q)) {
-
-                    pst.setInt(1, idCupon);
-                    pst.setString(2, dniCliente);
-
-                    try (ResultSet rs = pst.executeQuery()) {
-                        if (rs.next()) {
-                            double descuento = rs.getDouble("descuento");
-                            double montoFinal = montoCompra - (montoCompra * (descuento / 100));
-
-                            StringBuilder sb = new StringBuilder();
-                            sb.append("Cupón válido.\n")
-                              .append("Descuento aplicado: ").append(descuento).append("%\n")
-                              .append("Monto final: ").append(String.format("%.2f", montoFinal)).append("\n");
-
-                            
-                            String update = "update cupon set usado = true where id_cupon = ?";
-                            try (PreparedStatement pstUpdate = c.prepareStatement(update)) {
-                                pstUpdate.setInt(1, idCupon);
-                                pstUpdate.executeUpdate();
-                                sb.append("Cupón marcado como usado.");
-                            }
-
-                            resultado.setText(sb.toString());
-                        } else {
-                            resultado.setText("Cupón no válido o ya fue usado.");
-                        }
-                    }
-                }
-            } catch (NumberFormatException ex) {
-                resultado.setText("Código o monto no válidos.");
-            } catch (SQLException ex) {
-                resultado.setText("Error al acceder a la base de datos:\n" + ex.getMessage());
-                ex.printStackTrace();
-            }
-        });
-
-        Button btnCerrar = new Button("Cerrar");
-        btnCerrar.setOnAction(e2 -> ventana.close());
-
-        layout.getChildren().addAll(lblCodigo, inputCodigo, lblMonto, inputMonto, btnAplicar, resultado, btnCerrar);
-
-        Scene escena = new Scene(layout, 400, 350);
-        ventana.setScene(escena);
-        ventana.show();
-    }
+    
     /**
      * Muestra las facturas asociadas al cliente.
      * 
@@ -291,62 +328,88 @@ public class Cliente {
      * @throws SQLException en caso de error en la base de datos.
      */
     public void verFacturas(String dniCliente) throws SQLException {
-    	Stage ventana = new Stage();
-        ventana.setTitle("Mis Facturas");
+    	 
+        Stage stage = new Stage();
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(15));
 
-        VBox layout = new VBox(10);
-        layout.setStyle("-fx-padding: 15;");
+        Label titulo = new Label("Facturas del cliente DNI: " + dniCliente);
 
-        TextArea areaFacturas = new TextArea();
-        areaFacturas.setEditable(false);
+        TableView<Factura> tabla = new TableView<>();
 
-        Button btnCerrar = new Button("Cerrar");
-        btnCerrar.setOnAction(e -> ventana.close());
+        TableColumn<Factura, Integer> colId = new TableColumn<>("ID Factura");
+        colId.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getIdFactura()));
 
-        layout.getChildren().addAll(new Label("Facturas registradas:"), areaFacturas, btnCerrar);
+        TableColumn<Factura, LocalDate> colFechaEmision = new TableColumn<>("Fecha Emisión");
+        colFechaEmision.setCellValueFactory(new PropertyValueFactory<>("fechaEmision"));
 
-        Scene escena = new Scene(layout, 500, 400);
-        ventana.setScene(escena);
-        ventana.show();
+        TableColumn<Factura, Double> colTotal = new TableColumn<>("Total (€)");
+        colTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
+        TableColumn<Factura, Double> colTotalDescuento = new TableColumn<>("Total con descuento (€)");
+        colTotalDescuento.setCellValueFactory(new PropertyValueFactory<>("total_con_descuento"));
+        
 
-        String q = "select f.id_factura, f.venta_id, f.fecha_emision, f.total, " +
-                   "v.fecha_venta, v.metodo_pago, v.metodo_envio, v.coste_envio " +
-                   "from factura f join venta v on f.venta_id = v.id_venta " +
-                   "where f.dni_cliente = ?";
+        tabla.getColumns().addAll(colId, colFechaEmision, colTotal, colTotalDescuento);
 
-        try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pst = c.prepareStatement(q)) {
+        ObservableList<Factura> facturas = FXCollections.observableArrayList();
+        Button btnFactura = new Button("Descargar factura");
+        Label estado = new Label();
+        btnFactura.setOnAction(e -> {
+            Factura facturaSeleccionada = tabla.getSelectionModel().getSelectedItem();
 
-            pst.setString(1, dniCliente);
-
-            try (ResultSet rs = pst.executeQuery()) {
-                StringBuilder sb = new StringBuilder();
-                boolean encontrado = false;
-
-                while (rs.next()) {
-                    encontrado = true;
-                    sb.append("Factura ID: ").append(rs.getInt("id_factura")).append("\n");
-                    sb.append("Fecha emisión: ").append(rs.getDate("fecha_emision")).append("\n");
-                    sb.append("Total: ").append(rs.getBigDecimal("total")).append(" €\n");
-                    sb.append("Venta ID: ").append(rs.getInt("venta_id")).append("\n");
-                    sb.append("Fecha venta: ").append(rs.getDate("fecha_venta")).append("\n");
-                    sb.append("Método pago: ").append(rs.getString("metodo_pago")).append("\n");
-                    sb.append("Método envío: ").append(rs.getString("metodo_envio")).append("\n");
-                    sb.append("Coste envío: ").append(rs.getBigDecimal("coste_envio")).append(" €\n");
-                    sb.append("---------------------------------------------------\n");
-                }
-
-                if (!encontrado) {
-                    areaFacturas.setText("No se encontraron facturas para este cliente.");
-                } else {
-                    areaFacturas.setText(sb.toString());
-                }
+            if (facturaSeleccionada == null) {
+                
+                estado.setText("Por favor, selecciona una factura.");
+                return;
             }
 
-        } catch (SQLException ex) {
-            areaFacturas.setText("Error al cargar facturas:\n" + ex.getMessage());
-            ex.printStackTrace();
+            int idVenta = facturaSeleccionada.getIdFactura(); // Obtenemos el id de la factura
+
+            try {
+                Venta.descargarFacturaPdf(idVenta); // Método que usa el procedimiento 'facturacion'
+                estado.setText("Factura descargada como factura_" + idVenta + ".pdf");
+            } catch (IOException | SQLException ex) {
+                ex.printStackTrace();
+                estado.setText("Error al descargar la factura.");
+            }
+        });
+        String sql = "select id_factura, fecha_emision, total, total_con_descuento from factura where dni_cliente = ?";
+
+        try {
+            
+            Connection con = ConexionBD.obtenerConexion();
+            PreparedStatement pst = con.prepareStatement(sql);
+
+            
+            pst.setString(1, dniCliente);
+
+            ResultSet rs = pst.executeQuery();
+
+            while (rs.next()) {
+                Factura factura = new Factura(
+                    rs.getInt("id_factura"),
+                    rs.getDate("fecha_emision").toLocalDate(),
+                    rs.getDouble("total"), rs.getDouble("total_con_descuento"),null, sql
+                );
+                facturas.add(factura);
+            }
+
+            rs.close();
+            pst.close();
+            con.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+
+        tabla.setItems(facturas);
+
+        root.getChildren().addAll(titulo, tabla, btnFactura);
+
+        Scene scene = new Scene(root, 600, 400);
+        stage.setScene(scene);
+        stage.setTitle("Facturas del cliente");
+        stage.show();
     }
     /**
      * Permite al cliente participar en un sorteo,
@@ -355,295 +418,338 @@ public class Cliente {
      * @param dniCliente DNI del cliente participante.
      * @throws SQLException en caso de error en la base de datos.
      */
-    public void participarEnSorteo(String dniCliente) throws SQLException {
-        if (dniCliente == null || dniCliente.isBlank()) {
-            Alert alerta = new Alert(Alert.AlertType.ERROR, "El DNI no puede ser nulo ni estar vacío.");
-            alerta.show();
-            return;
-        }
-
-        List<String> premios = Arrays.asList(
-            "vale de 10€", "producto gratis", "cupón de envío gratuito",
-            "descuento del 50%", "acceso a evento vip", "vale de 25€"
-        );
-
-        String sqlSelect = "SELECT resultado FROM sorteo WHERE cliente_dni = ?";
-        String sqlUpdate = "UPDATE sorteo SET resultado = ?, premio = ? WHERE cliente_dni = ?";
-        String sqlInsert = "INSERT INTO sorteo (resultado, premio, cliente_dni) VALUES (?, ?, ?)";
-
-        try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pstSelect = c.prepareStatement(sqlSelect)) {
-
-            pstSelect.setString(1, dniCliente);
-            ResultSet rs = pstSelect.executeQuery();
-
-            String resultado;
-            String premio;
-            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-            alerta.setTitle("Resultado del sorteo");
-
-            if (rs.next()) {
-                String resultadoAnterior = rs.getString("resultado");
-                if ("NO PARTICIPÓ".equalsIgnoreCase(resultadoAnterior)) {
-                    resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
-                    premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
-
-                    try (PreparedStatement pstUpdate = c.prepareStatement(sqlUpdate)) {
-                        pstUpdate.setString(1, resultado);
-                        pstUpdate.setString(2, premio);
-                        pstUpdate.setString(3, dniCliente);
-                        pstUpdate.executeUpdate();
-                    }
-
-                    alerta.setHeaderText("¡Participación actualizada!");
-                } else {
-                    resultado = resultadoAnterior;
-                    premio = obtenerPremioExistente(dniCliente, c);
-                    alerta.setHeaderText("Ya has participado en el sorteo");
-                }
-            } else {
-                resultado = Math.random() < 0.3 ? "GANADOR" : "PERDEDOR";
-                premio = resultado.equals("GANADOR") ? premios.get(new Random().nextInt(premios.size())) : null;
-
-                try (PreparedStatement pstInsert = c.prepareStatement(sqlInsert)) {
-                    pstInsert.setString(1, resultado);
-                    pstInsert.setString(2, premio);
-                    pstInsert.setString(3, dniCliente);
-                    pstInsert.executeUpdate();
-                }
-
-                alerta.setHeaderText("¡Participación registrada!");
-            }
-
-            alerta.setContentText("Resultado: " + resultado + "\nPremio: " + (premio != null ? premio : "Ninguno"));
-            alerta.showAndWait();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Alert error = new Alert(Alert.AlertType.ERROR, "Error al participar en el sorteo.");
-            error.show();
-        }
-    }
-    /**
-     * Consulta el premio ya asignado al cliente en el sorteo.
-     * 
-     * @param dni DNI del cliente.
-     * @param c   Conexión abierta a la base de datos.
-     * @return el premio asignado o "Ninguno" si no tiene premio.
-     * @throws SQLException en caso de error en la base de datos.
-     */
-    private String obtenerPremioExistente(String dni, Connection c) throws SQLException {
-        String query = "SELECT premio FROM sorteo WHERE cliente_dni = ?";
-        try (PreparedStatement pst = c.prepareStatement(query)) {
-            pst.setString(1, dni);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                return rs.getString("premio") != null ? rs.getString("premio") : "Ninguno";
-            }
-        }
-        return "Ninguno";
-    }
-    /**
+   public void participarEnSorteo() throws SQLException {
+	   Stage stage = new Stage();
+	   VBox v = new VBox(10);
+	   v.setPadding(new Insets(15));
+	   
+	   Label titulo = new Label("Sorteos disponibles para" + this.nombre);
+	   ;
+	   ListView<Sorteo> listSorteo = new ListView<Sorteo>();
+	   Button btnParticipar = new Button("Participar");
+	   Label estado = new Label();
+	   Label lblHistorial = new Label("Historial de sorteos:");
+	    ListView<String> listHistorial = new ListView<>();
+	   listSorteo.getItems().addAll(Sorteo.obtenerSorteosDisponibles(dni))	;
+	   
+	   listHistorial.getItems().addAll(Sorteo.obtenerHistorialParticipacion(dni));
+	   btnParticipar.setOnAction(e ->{
+		   Sorteo seleccion = listSorteo.getSelectionModel().getSelectedItem();
+		   if(seleccion == null) {
+			   estado.setText("Selecciona un sorteo primero");
+			   
+		   }else {
+		   String resultado = Math.random()< 0.1 ? "GANADOR":"PERDEDOR";
+		   String sql = "update sorteo set resultado = ? where id_sorteo = ?";
+		   try(Connection c = ConexionBD.obtenerConexion();
+				   PreparedStatement pst = c.prepareStatement(sql)){
+			   pst.setString(1, resultado);
+			   pst.setInt(2, seleccion.getIdSorteo());
+			   int filas =pst.executeUpdate();
+			   if (filas > 0) {
+				   estado.setText("Participaste como " + resultado.toLowerCase() + " en el sorteo " + seleccion.getIdSorteo());
+				   listSorteo.getItems().remove(seleccion);
+				   listHistorial.getItems().clear();
+	                listHistorial.getItems().addAll(Sorteo.obtenerHistorialParticipacion(dni));
+			   }else {
+				   estado.setText("No se pudo actualizar el sorteo. ¿Ya participaste?");
+			   }
+		   } catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			estado.setText("Error al participar: " + e1.getMessage());
+		}
+	   }});
+	   v.getChildren().addAll(titulo, listSorteo, btnParticipar, estado, lblHistorial, listHistorial);
+	   stage.setScene(new Scene(v, 400, 300));
+	   stage.setTitle("Participar en sorteos");
+	   stage.show();
+	   
+   }
+   
+    
+   /**
      * Consulta y muestra los cupones de descuento disponibles para el cliente.
      * 
      * @throws SQLException en caso de error en la consulta a la base de datos.
      */
-    public void consultarCuponesDisponibles() throws SQLException {
-        String q = "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false";
+   public void mostrarCuponesDisponibles() {
+	    Stage ventana = new Stage();
+	    ventana.setTitle("Cupones Disponibles");
 
-        try (Connection c = ConexionBD.obtenerConexion();
-             PreparedStatement pst = c.prepareStatement(q)) {
+	    VBox layout = new VBox(10);
+	    layout.setPadding(new Insets(10));
 
-            pst.setString(1, dni);
-            ResultSet rs = pst.executeQuery();
+	    ListView<Cupon> listView = new ListView<>();
+	    List<Cupon> cupones = Cupon.obtenerCuponesDisponibles();
+	    listView.getItems().addAll(cupones);
 
-            StringBuilder mensaje = new StringBuilder();
-            boolean hayCupones = false;
 
-            while (rs.next()) {
-                hayCupones = true;
-                int id = rs.getInt("id_cupon");
-                double descuento = rs.getDouble("descuento");
-                mensaje.append("- Cupón #").append(id)
-                       .append(" | Descuento: ").append(descuento).append("%\n");
-            }
+	    Label lblEstado = new Label();
 
-            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-            alerta.setTitle("Cupones disponibles");
+	    
 
-            if (hayCupones) {
-                alerta.setHeaderText("Cupones activos:");
-                alerta.setContentText(mensaje.toString());
-            } else {
-                alerta.setHeaderText("No tiene cupones disponibles actualmente.");
-                alerta.setContentText(null);
-            }
-
-            alerta.showAndWait();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Alert error = new Alert(Alert.AlertType.ERROR, "Error al consultar los cupones.");
-            error.show();
-        }
-    }
+	    layout.getChildren().addAll(new Label("Seleccione un cupón:"), listView,  lblEstado);
+	    Scene escena = new Scene(layout, 400, 300);
+	    ventana.setScene(escena);
+	    ventana.show();
+	}
     /*Comprar productos insertandolo en la cesta y comprar (se puede insertar el cupon )
     * @param dni El DNI del cliente que está realizando la compra.
        */
-    public void comprarProductos(String dni) {
-    	 Stage stage = new Stage();
-    	    VBox v = new VBox(10);
-    	    v.setStyle("-fx-padding: 15;");
+ 
+   public void comprarProductos(String dni) {
+	    Stage stage = new Stage();
+	    VBox v = new VBox(10);
+	    v.setStyle("-fx-padding: 15;");
 
-    	    Label titulo = new Label("Selecciona productos:");
-    	    ListView<String> listaProductos = new ListView<>();
-    	    Map<String, Integer> productoMap = new HashMap<>();
-    	    Map<String, Double> precioMap = new HashMap<>();
+	    Label titulo = new Label("Selecciona productos:");
+	    ListView<String> listaProductos = new ListView<>();
+	    Map<String, Integer> productoMap = new HashMap<>(); // item string -> idProducto
+	    Map<Integer, String> idProductoANombre = new HashMap<>();
+	    Map<Integer, Double> idProductoAPrecio = new HashMap<>();
 
-    	    try (Connection c = ConexionBD.obtenerConexion();
-    	         Statement stmt = c.createStatement();
-    	         ResultSet rs = stmt.executeQuery("SELECT id_producto, nombre, precio FROM producto")) {
+	    // Cargar productos con consulta SELECT normal, no con procedimiento
+	    try (Connection c = ConexionBD.obtenerConexion();
+	         PreparedStatement pst = c.prepareStatement(
+	            "select id_producto, nombre, coalesce(precio_descuento, precio) as precio_final from producto");
+	         ResultSet rs = pst.executeQuery()) {
 
-    	        while (rs.next()) {
-    	            int id = rs.getInt("id_producto");
-    	            String nombre = rs.getString("nombre");
-    	            double precio = rs.getDouble("precio");
-    	            String item = nombre + " " + precio + " - €";
-    	            listaProductos.getItems().add(item);
-    	            productoMap.put(item, id);
-    	            precioMap.put(item, precio);
-    	        }
-    	    } catch (SQLException ex) {
-    	        ex.printStackTrace();
-    	    }
+	        while (rs.next()) {
+	            int id = rs.getInt("id_producto");
+	            String nombre = rs.getString("nombre");
+	            double precio = rs.getDouble("precio_final");
+	            String item = nombre + " " + String.format("%.2f", precio) + " €";
+	            listaProductos.getItems().add(item);
+	            productoMap.put(item, id);
+	            idProductoANombre.put(id, nombre);
+	            idProductoAPrecio.put(id, precio);
+	        }
+	    } catch (SQLException ex) {
+	        ex.printStackTrace();
+	    }
 
-    	    ListView<String> cesta = new ListView<>();
-    	    Label labelCesta = new Label("Cesta de productos:");
-    	    Button btnAgregar = new Button("Agregar a cesta");
+	    ListView<String> cesta = new ListView<>();
+	    Label labelCesta = new Label("Cesta de productos:");
+	    Button btnAgregar = new Button("Agregar a cesta");
 
-    	    btnAgregar.setOnAction(e -> {
-    	        String seleccionado = listaProductos.getSelectionModel().getSelectedItem();
-    	        if (seleccionado != null) {
-    	            cesta.getItems().add(seleccionado);
-    	        }
-    	    });
+	    // Mapa para agrupar productos y cantidades
+	    Map<Integer, Integer> cestaMap = new HashMap<>();
 
-    	    CheckBox usarCupon = new CheckBox("Usar cupón de descuento");
-    	    Label estado = new Label();
+	    btnAgregar.setOnAction(e -> {
+	        String seleccionado = listaProductos.getSelectionModel().getSelectedItem();
+	        if (seleccionado != null) {
+	            Stage cantidadStage = new Stage();
+	            cantidadStage.initModality(Modality.APPLICATION_MODAL);
+	            cantidadStage.setTitle("Seleccionar cantidad");
 
-    	    Button btnConfirmar = new Button("Confirmar compra");
-    	    btnConfirmar.setOnAction(e -> {
-    	        List<String> seleccionados = cesta.getItems();
-    	        if (seleccionados.isEmpty()) {
-    	            estado.setText("La cesta está vacía.");
-    	            return;
-    	        }
+	            VBox cantidadLayout = new VBox(10);
+	            cantidadLayout.setPadding(new Insets(15));
 
-    	        try (Connection c = ConexionBD.obtenerConexion()) {
-    	            double total = 0.0;
-    	            for (String item : seleccionados) {
-    	                total += precioMap.get(item);
-    	            }
+	            Label lbl = new Label("¿Cuántas unidades deseas?");
+	            Spinner<Integer> spinner = new Spinner<>(1, 100, 1);
 
-    	            double descuento = 0.0;
-    	            int cuponId = -1;
+	            Button confirmar = new Button("Agregar");
+	            confirmar.setOnAction(ev -> {
+	                int cantidad = spinner.getValue();
 
-    	            if (usarCupon.isSelected()) {
-    	                PreparedStatement pstCupon = c.prepareStatement(
-    	                        "SELECT id_cupon, descuento FROM cupon WHERE cliente_dni = ? AND usado = false LIMIT 1");
-    	                pstCupon.setString(1, dni);
-    	                ResultSet rsCupon = pstCupon.executeQuery();
+	                Integer idProducto = productoMap.get(seleccionado);
+	                if (idProducto == null) {
+	                    cantidadStage.close();
+	                    return;
+	                }
 
-    	                if (rsCupon.next()) {
-    	                    descuento = rsCupon.getDouble("descuento") / 100.0;
-    	                    cuponId = rsCupon.getInt("id_cupon");
-    	                } else {
-    	                    estado.setText("No tienes cupones disponibles.");
-    	                    return;
-    	                }
-    	            }
+	              
+	                cestaMap.put(idProducto, cestaMap.getOrDefault(idProducto, 0) + cantidad);
 
-    	            double totalFinal = total * (1 - descuento);
+	                
+	                cesta.getItems().clear();
+	                for (Map.Entry<Integer, Integer> entry : cestaMap.entrySet()) {
+	                    String nombreProducto = idProductoANombre.get(entry.getKey());
+	                    double precioProducto = idProductoAPrecio.get(entry.getKey());
+	                    String itemTexto = nombreProducto + " " + String.format("%.2f", precioProducto) + " € x" + entry.getValue();
+	                    cesta.getItems().add(itemTexto);
+	                }
 
-    	            // Insertar en tabla venta
-    	            PreparedStatement pstVenta = c.prepareStatement(
-    	                    "INSERT INTO venta (fecha_venta, total, metodo_pago, metodo_envio, coste_envio, cliente_dni) " +
-    	                    "VALUES (CURDATE(), ?, 'TARJETA', '3 A 5 DIAS', 0.00, ?)", Statement.RETURN_GENERATED_KEYS);
-    	            pstVenta.setDouble(1, totalFinal);
-    	            pstVenta.setString(2, dni);
-    	            int filasVenta = pstVenta.executeUpdate();
+	                cantidadStage.close();
+	            });
 
-    	            if (filasVenta == 0) {
-    	                estado.setText("Error al registrar la venta.");
-    	                return;
-    	            }
+	            cantidadLayout.getChildren().addAll(lbl, spinner, confirmar);
+	            Scene scene = new Scene(cantidadLayout, 250, 120);
+	            cantidadStage.setScene(scene);
+	            cantidadStage.showAndWait();
+	        }
+	    });
 
-    	            ResultSet rsVenta = pstVenta.getGeneratedKeys();
-    	            int idVenta = -1;
-    	            if (rsVenta.next()) {
-    	                idVenta = rsVenta.getInt(1);
-    	            } else {
-    	                estado.setText("Error al obtener el ID de la venta.");
-    	                return;
-    	            }
+	    CheckBox usarCupon = new CheckBox("Usar cupón de descuento");
+	    Label estado = new Label();
 
-    	            // Agrupar productos por id y contar cantidades para evitar duplicados
-    	            Map<Integer, Integer> cantidades = new HashMap<>();
-    	            for (String item : seleccionados) {
-    	                int idProducto = productoMap.get(item);
-    	                cantidades.put(idProducto, cantidades.getOrDefault(idProducto, 0) + 1);
-    	            }
+	    Button btnConfirmar = new Button("Confirmar compra");
+	    btnConfirmar.setOnAction(e -> {
+	        if (cestaMap.isEmpty()) {
+	            estado.setText("La cesta está vacía.");
+	            return;
+	        }
 
-    	            // Insertar productos en producto_en_venta
-    	            for (Map.Entry<Integer, Integer> entry : cantidades.entrySet()) {
-    	                int idProducto = entry.getKey();
-    	                int cantidad = entry.getValue();
+	        Stage dialog = new Stage();
+	        dialog.initModality(Modality.APPLICATION_MODAL);
+	        dialog.setTitle("Método de Pago y Envío");
 
-    	                PreparedStatement pstProdVenta = c.prepareStatement(
-    	                        "INSERT INTO producto_en_venta (venta_id, producto_id, cantidad) VALUES (?, ?, ?)");
-    	                pstProdVenta.setInt(1, idVenta);
-    	                pstProdVenta.setInt(2, idProducto);
-    	                pstProdVenta.setInt(3, cantidad);
-    	                pstProdVenta.executeUpdate();
-    	            }
+	        VBox layout = new VBox(10);
+	        layout.setPadding(new Insets(15));
 
-    	            // Actualizar cupón si se usó
-    	            if (cuponId != -1) {
-    	                PreparedStatement pstUpdateCupon = c.prepareStatement(
-    	                        "UPDATE cupon SET usado = true, fecha_uso = CURDATE(), venta_id = ? WHERE id_cupon = ?");
-    	                pstUpdateCupon.setInt(1, idVenta);
-    	                pstUpdateCupon.setInt(2, cuponId);
-    	                pstUpdateCupon.executeUpdate();
-    	            }
+	        Label lblPago = new Label("Método de pago:");
+	        ComboBox<String> comboPago = new ComboBox<>();
+	        comboPago.getItems().addAll("TARJETA", "EFECTIVO", "DESPUES DE ENTREGA", "PAYPAL", "BIZUM");
+	        comboPago.getSelectionModel().selectFirst();
 
-    	            estado.setText(String.format("Compra realizada con éxito. Venta #%d - Total: %.2f €", idVenta, totalFinal));
+	        Label lblEnvio = new Label("Método de envío:");
+	        ComboBox<String> comboEnvio = new ComboBox<>();
+	        comboEnvio.getItems().addAll("24H", "3 A 5 DIAS", "7 A 12 DIAS", "URGENTE", "RECOGIDA EN TIENDA");
+	        comboEnvio.getSelectionModel().selectFirst();
 
-    	        } catch (SQLException ex) {
-    	            ex.printStackTrace();
-    	            estado.setText("Error al registrar la venta.");
-    	        }
-    	    });
+	        Button btnFinalizar = new Button("Finalizar compra");
+	        btnFinalizar.setOnAction(ev -> {
+	            dialog.close();
+	            String metodoPago = comboPago.getValue();
+	            String metodoEnvio = comboEnvio.getValue();
 
-    	    Button btnCerrar = new Button("Cerrar");
-    	    btnCerrar.setOnAction(e -> stage.close());
+	            try (Connection c2 = ConexionBD.obtenerConexion()) {
+	                int cuponId = -1;
+	                boolean usar = usarCupon.isSelected();
 
-    	    v.getChildren().addAll(
-    	        titulo,
-    	        listaProductos,
-    	        btnAgregar,
-    	        labelCesta,
-    	        cesta,
-    	        usarCupon,
-    	        btnConfirmar,
-    	        estado,
-    	        btnCerrar
-    	    );
+	                if (usar) {
+	                    String sqlCupon = "Select obtener_cupon_disponible()";
+	                    try (PreparedStatement pstCupon = c2.prepareStatement(sqlCupon);
+	                         ResultSet rsCupon = pstCupon.executeQuery()) {
+	                        if (rsCupon.next()) {
+	                        	cuponId = rsCupon.getInt(1); 
+	                        } else {
+	                            estado.setText("No tienes cupones activos disponibles.");
+	                            return;
+	                        }
+	                    }
+	                }
 
-    	    Scene scene = new Scene(v, 400, 550);
-    	    stage.setScene(scene);
-    	    stage.setTitle("Compra de Productos");
-    	    stage.show();
+	                String insertVenta = "INSERT INTO venta (cliente_dni, fecha_venta, total, metodo_pago, metodo_envio, coste_envio) " +
+	                        "VALUES (?, CURDATE(), 0, ?, ?, 0.00)";
+	                int idVenta;
+	                try (PreparedStatement pstVenta = c2.prepareStatement(insertVenta, Statement.RETURN_GENERATED_KEYS)) {
+	                    pstVenta.setString(1, dni);
+	                    pstVenta.setString(2, metodoPago);
+	                    pstVenta.setString(3, metodoEnvio);
+	                    pstVenta.executeUpdate();
+
+	                    try (ResultSet rsVenta = pstVenta.getGeneratedKeys()) {
+	                        if (rsVenta.next()) {
+	                            idVenta = rsVenta.getInt(1);
+	                        } else {
+	                            estado.setText("No se pudo obtener el ID de venta.");
+	                            return;
+	                        }
+	                    }
+	                }
+
+	                String insertProd = "INSERT INTO producto_en_venta (venta_id, producto_id, cantidad) VALUES (?, ?, ?)";
+	                try (PreparedStatement pstProd = c2.prepareStatement(insertProd)) {
+	                    for (Map.Entry<Integer, Integer> entry : cestaMap.entrySet()) {
+	                        pstProd.setInt(1, idVenta);
+	                        pstProd.setInt(2, entry.getKey());
+	                        pstProd.setInt(3, entry.getValue());
+	                        pstProd.executeUpdate();
+	                    }
+	                }
+
+	    
+	                String getIdSql = "SELECT dni FROM cliente WHERE dni = ?";
+	                
+	                try (PreparedStatement pst = c2.prepareStatement(getIdSql)) {
+	                    pst.setString(1, this.dni);
+	                    try (ResultSet rs = pst.executeQuery()) {
+	                        if (rs.next()) {
+	                             rs.getString("dni");
+	                        } else {
+	                            estado.setText("Cliente no encontrado.");
+	                            return;
+	                        }
+	                    }
+	                }
+
+	                String call = "{CALL finalizar_venta(?, ?, ?)}";
+	                try (CallableStatement cs = c2.prepareCall(call)) {
+	                    cs.setInt(1, idVenta); 
+	                    if (cuponId != -1) {
+	                        cs.setInt(2, cuponId);
+	                        cs.setBoolean(3, true);
+	                    } else {
+	                        cs.setNull(2, Types.INTEGER);
+	                        cs.setBoolean(3, false);
+	                    }
+
+	                    try (ResultSet rs = cs.executeQuery()) {
+	                        if (rs.next()) {
+	                            int id = rs.getInt("id_venta");
+	                            double total = rs.getDouble("total");
+	                            double totalConDescuento = rs.getDouble("total_con_descuento");
+
+	                            estado.setText(String.format("Venta #%d registrada. Total: %.2f€, Final: %.2f€", id, total, totalConDescuento));
+	                        }
+	                    }
+	                }
+
+
+	                cestaMap.clear();
+	                cesta.getItems().clear();
+
+	            } catch (SQLException ex) {
+	                ex.printStackTrace();
+	                estado.setText("Error al realizar la compra.");
+	            }
+	        });
+
+	        layout.getChildren().addAll(lblPago, comboPago, lblEnvio, comboEnvio, btnFinalizar);
+	        Scene scene = new Scene(layout, 300, 200);
+	        dialog.setScene(scene);
+	        dialog.showAndWait();
+	    });
+
+	    Button btnCerrar = new Button("Cerrar");
+	    btnCerrar.setOnAction(e -> stage.close());
+
+	    v.getChildren().addAll(
+	            titulo,
+	            listaProductos,
+	            btnAgregar,
+	            labelCesta,
+	            cesta,
+	            usarCupon,
+	            btnConfirmar,
+	            estado,
+	            btnCerrar
+	    );
+
+	    Scene scene = new Scene(v, 400, 550);
+	    stage.setScene(scene);
+	    stage.setTitle("Compra de Productos");
+	    stage.show();
+	}
+   /**
+    * Elimina un cliente de la base de datos según su DNI.
+    *
+    * @param dni DNI del cliente que se desea eliminar.
+    */
+    public static void eliminarClienteBD(String dni) {
+        String sql = "delete from cliente where dni = ?";
+        try (Connection c = ConexionBD.obtenerConexion();
+             PreparedStatement pst = c.prepareStatement(sql)) {
+            pst.setString(1, dni);
+            pst.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
+    
    
+    
     
     
 }

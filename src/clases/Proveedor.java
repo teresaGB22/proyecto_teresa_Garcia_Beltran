@@ -64,9 +64,8 @@ public class Proveedor {
 	 * Constructor con ID y nombre.
 	 * 
 	 * @param idProveedor ID del proveedor.
-	 * @param nombre      Nombre del proveedor.
 	 */
-	public Proveedor(int idProveedor, String nombre) {
+	public Proveedor(int idProveedor) {
 		this.idProveedor = idProveedor;
 		this.nombre = nombre;
 	}
@@ -93,6 +92,8 @@ public class Proveedor {
 
 	}
 // === Métodos Getters y Setters ===
+
+	
 
 	public int getIdProveedor() {
 		return idProveedor;
@@ -474,7 +475,6 @@ public class Proveedor {
 		TableView<ObservableList<String>> tabla = new TableView<>();
 		ObservableList<ObservableList<String>> datos = FXCollections.observableArrayList();
 
-		// Filtros
 		DatePicker dpFecha = new DatePicker();
 		ComboBox<String> cbEstadoFiltro = new ComboBox<>();
 		cbEstadoFiltro.getItems().addAll("TODOS", "PENDIENTE", "CONFIRMADO", "RECHAZADO", "ENVIADO", "ENTREGADO",
@@ -482,7 +482,6 @@ public class Proveedor {
 		cbEstadoFiltro.setValue("TODOS");
 		Button btnFiltrar = new Button("Filtrar");
 
-		// ComboBox para cambiar estado
 		ComboBox<String> cmbEstados = new ComboBox<>();
 		cmbEstados.getItems().addAll("CONFIRMADO", "RECHAZADO", "ENVIADO", "ENTREGADO", "CANCELADO");
 		cmbEstados.setPromptText("Selecciona nuevo estado");
@@ -540,10 +539,9 @@ public class Proveedor {
 			}
 		};
 
-		// Botón filtrar
+		
 		btnFiltrar.setOnAction(e -> cargarPedidos.run());
 
-		// Botón actualizar estado
 		btnActualizar.setOnAction(e -> {
 			ObservableList<String> filaSeleccionada = tabla.getSelectionModel().getSelectedItem();
 			String nuevoEstado = cmbEstados.getValue();
@@ -909,94 +907,113 @@ public class Proveedor {
 	 * Método que permite gestionar promociones y cupones.
 	 */
 	public void gestionPromocionesCupones() {
+	    ListView<String> listCupones = new ListView<>();
+	    cargarCuponesActivos(listCupones);
 
-		ListView<String> listCupones = new ListView<String>();
-		cargarCuponesActivos(listCupones);
-		Stage v = new Stage();
-		v.setTitle("Gestión de promociones y cupones.");
-		TabPane tb = new TabPane();
-		Tab tp = new Tab("Promociones");
-		VBox vp = new VBox(10);
-		vp.setPadding(new Insets(10));
+	    Stage v = new Stage();
+	    v.setTitle("Gestión de promociones y cupones.");
+	    TabPane tb = new TabPane();
 
-		Label lblCrearPromo = new Label("Crear nueva Promocion");
-		TextField txtProducto = new TextField();
-		txtProducto.setPromptText("Nombre del producto");
-		TextField txtDescuento = new TextField();
-		txtDescuento.setPromptText("Descuento (%)");
-		Button btnCrearPromo = new Button("Crear promocion");
-		Label lblEstado = new Label();
+	    // Tab Promociones
+	    Tab tp = new Tab("Promociones");
+	    VBox vp = new VBox(10);
+	    vp.setPadding(new Insets(10));
 
-		btnCrearPromo.setOnAction(e -> {
-			String producto = txtProducto.getText().trim();
-			String descuento = txtDescuento.getText().trim();
+	    Label lblCrearPromo = new Label("Crear nueva Promoción");
 
-			if (producto.isEmpty() || descuento.isEmpty()) {
-				lblEstado.setText("Debe ingresar producto y descuento.");
-				return;
-			}
-			try {
-				double descuentoD = Double.parseDouble(descuento);
-				if (descuentoD <= 0 || descuentoD > 100) {
-					lblEstado.setText("Descuento debe ser entre 0 100");
-					return;
-				}
+	    Label lblSeleccionarProducto = new Label("Selecciona un producto:");
+	    TableView<Producto> tablaProductos = new TableView<Producto>();
+	    
+	    TableColumn<Producto, Integer> colId = new TableColumn<>("ID");
+	    colId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
 
-				String query = "INSERT INTO promocion (proveedor_id, descripcion, descuento, fecha_inicio, fecha_fin, activo) VALUES (?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), true)";
-				try (Connection conexion = ConexionBD.obtenerConexion();
-						PreparedStatement pst = conexion.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+	    TableColumn<Producto, String> colNombre = new TableColumn<>("Nombre");
+	    colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
 
-					pst.setInt(1, this.idProveedor);
-					pst.setString(2, "promocion para producto " + producto);
-					pst.setDouble(3, descuentoD);
-					int filas = pst.executeUpdate();
+	    TableColumn<Producto, Double> colPrecio = new TableColumn<>("Precio");
+	    colPrecio.setCellValueFactory(new PropertyValueFactory<>("precio"));
 
-					if (filas > 0) {
-						ResultSet rs = pst.getGeneratedKeys();
-						if (rs.next()) {
-							int idPromocion = rs.getInt(1);
+	    TableColumn<Producto, Integer> colStock = new TableColumn<>("Stock");
+	    colStock.setCellValueFactory(new PropertyValueFactory<>("stock"));
 
-							String queryCupon = "INSERT INTO cupon (promocion_id, descuento, usado) VALUES (?, ?, false)";
-							try (PreparedStatement pstCupon = conexion.prepareStatement(queryCupon)) {
-								pstCupon.setInt(1, idPromocion);
-								pstCupon.setDouble(2, descuentoD);
-								pstCupon.executeUpdate();
-							}
-						}
+	    tablaProductos.getColumns().addAll(colId, colNombre, colPrecio, colStock);
+	    tablaProductos.setPrefHeight(200);
+	    cargarProductosProveedor(tablaProductos);
 
-						lblEstado.setText("Promoción creada: " + producto + " con " + descuento + " %");
-						txtProducto.clear();
-						txtDescuento.clear();
-						cargarCuponesActivos(listCupones);
-					} else {
-						lblEstado.setText("Error de creación de promoción");
-					}
+	    TextField txtDescuento = new TextField();
+	    txtDescuento.setPromptText("Descuento (%)");
 
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
+	    Button btnCrearPromo = new Button("Crear promoción");
+	    Label lblEstado = new Label();
 
-			} catch (NumberFormatException ex) {
-				lblEstado.setText("Descuento debe ser un numero valido");
-			}
-		});
-		Tab tc = new Tab("Cupones Activos");
-		VBox vc = new VBox(10);
+	    btnCrearPromo.setOnAction(e -> {
+	        Producto productoSeleccionado = tablaProductos.getSelectionModel().getSelectedItem();
+	        String descuento = txtDescuento.getText().trim();
 
-		vc.setPadding(new Insets(10));
+	        if (productoSeleccionado == null || descuento.isEmpty()) {
+	            lblEstado.setText("Debe seleccionar un producto y un descuento.");
+	            return;
+	        }
 
-		cargarCuponesActivos(listCupones);
-		vc.getChildren().addAll(new Label("Cupones activos: "), listCupones);
-		tc.setContent(vc);
+	        try {
+	            double descuentoD = Double.parseDouble(descuento);
+	            if (descuentoD <= 0 || descuentoD > 100) {
+	                lblEstado.setText("Descuento debe ser entre 0 y 100.");
+	                return;
+	            }
 
-		vp.getChildren().addAll(lblCrearPromo, txtProducto, txtDescuento, btnCrearPromo, lblEstado);
-		tp.setContent(vp);
-		tb.getTabs().addAll(tp, tc);
+	            int idProducto = productoSeleccionado.getIdProducto();
+	            String insertPromo = "INSERT INTO promocion (proveedor_id, descripcion, descuento, activo, producto_id) " +
+	                                 "VALUES (?, ?, ?,true, ?)";
 
-		Scene scene = new Scene(tb, 500, 400);
-		v.setScene(scene);
-		v.show();
+	            try (Connection c = ConexionBD.obtenerConexion();
+	                 PreparedStatement pst = c.prepareStatement(insertPromo, Statement.RETURN_GENERATED_KEYS)) {
+
+	                pst.setInt(1, this.idProveedor);
+	                pst.setString(2, "Promoción para producto " + productoSeleccionado.toString());
+	                pst.setDouble(3, descuentoD);
+	                pst.setInt(4, idProducto);
+
+	                int filas = pst.executeUpdate();
+
+	                if (filas > 0) {
+	                    lblEstado.setText("Promoción creada correctamente. Cupón generado automáticamente.");
+	                    txtDescuento.clear();
+	                    cargarCuponesActivos(listCupones); // Cargar los nuevos cupones creados por el trigger
+	                } else {
+	                    lblEstado.setText("Error al crear la promoción.");
+	                }
+
+	            } catch (SQLException e1) {
+	                e1.printStackTrace();
+	                lblEstado.setText("Error de base de datos al insertar promoción: " + e1.getMessage());
+	            }
+
+	        } catch (NumberFormatException ex) {
+	            lblEstado.setText("Descuento debe ser un número válido.");
+	        }
+	    });
+
+	    vp.getChildren().addAll(lblCrearPromo, lblSeleccionarProducto, tablaProductos, txtDescuento, btnCrearPromo, lblEstado);
+	    tp.setContent(vp);
+
+	    // Tab Cupones
+	    
+	    Tab tc = new Tab("Cupones Activos");
+	    VBox vc = new VBox(10);
+	    vc.setPadding(new Insets(10));
+	    cargarCuponesActivos(listCupones);
+	    vc.getChildren().addAll(new Label("Cupones activos: "), listCupones);
+	    tc.setContent(vc);
+
+	    tb.getTabs().addAll(tp, tc);
+
+	    Scene scene = new Scene(tb, 500, 400);
+	    v.setScene(scene);
+	    v.show();
 	}
+		
+	
 
 	private void cargarCuponesActivos(ListView<String> listCupones) {
 		listCupones.getItems().clear();
@@ -1023,5 +1040,29 @@ public class Proveedor {
 
 			e.printStackTrace();
 		}
+	}
+	public void CrearSorteo() {
+		Sorteo.mostrarCrearSorteo(this);
+	}
+	private void cargarProductosProveedor(TableView<Producto> tbProducto) {
+	    tbProducto.getItems().clear();
+	    String sql = "SELECT id_producto, nombre, precio, stock FROM producto WHERE proveedor_id = ?";
+	    try (Connection c = ConexionBD.obtenerConexion(); PreparedStatement pst = c.prepareStatement(sql)) {
+	        pst.setInt(1, this.idProveedor);
+	        try (ResultSet rs = pst.executeQuery()) {
+	            while (rs.next()) {
+	                Producto p = new Producto(
+	                    rs.getInt("id_producto"),
+	                    rs.getString("nombre"),
+	                    rs.getDouble("precio"),
+	                    rs.getInt("stock")
+	                );
+	                tbProducto.getItems().add(p);
+	            }
+	        }
+	    } catch (SQLException e) {
+	        tbProducto.getItems().add(new Producto(-1, "Error: " + e.getMessage(), 0, 0));
+	        e.printStackTrace();
+	    }
 	}
 }

@@ -13,6 +13,11 @@ public Producto_En_Venta(int cantidad, Venta venta, Producto producto) {
 	this.producto = producto;
 }
 
+public Producto_En_Venta(Producto producto2, int cantidad2) {
+    this.producto = producto2;
+    this.cantidad = cantidad2;
+}
+
 public int getCantidad() {
 	return cantidad;
 }

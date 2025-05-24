@@ -2,16 +2,15 @@ drop database if exists CreacionBD;
 create database CreacionBD;
 use CreacionBD;
 
--- Tabla proveedor con campos adicionales para contacto e información fiscal/bancaria
 create table proveedor(
     id_proveedor int primary key auto_increment,
     dni varchar(9) not null unique,
     nombre varchar(100) not null,
     apellidos varchar(200) not null,
-    telefono varchar(20),          -- nuevo campo teléfono
-    email varchar(200),            -- nuevo campo email
-    direccion_fiscal varchar(300), -- nueva dirección fiscal
-    cuenta_bancaria varchar(50)    -- nueva cuenta bancaria
+    telefono varchar(20),         
+    email varchar(200),            
+    direccion_fiscal varchar(300), 
+    cuenta_bancaria varchar(50)    
 );
 
 create table promocion(

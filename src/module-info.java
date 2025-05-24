@@ -14,5 +14,6 @@ module proyecto {
 	requires styled.xml.parser;
 	requires layout;
 	requires io;
+	requires org.junit.jupiter.api;
     exports clases;
 }
